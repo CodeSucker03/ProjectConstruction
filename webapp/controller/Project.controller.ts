@@ -20,6 +20,7 @@ import {
   mockWorkflowData,
   mockApprovalHistoryData,
   mockStepPool,
+  mockProjectDocumentData,
 } from "../model/mockProject";
 
 import type { Button$PressEvent } from "sap/m/Button";
@@ -38,14 +39,17 @@ import type {
   ProjectStepItem,
   WorkflowData,
 } from "../types/pages/main";
+import type { ProjectDocumentModel } from "../types/pages/project";
 import type {
   ODataError,
   ODataErrorResponse,
   ODataResponse,
+  ODataResponses,
 } from "../types/odata";
 import FilterOperator from "sap/ui/model/FilterOperator";
 import UI5Element from "sap/ui/core/Element";
 import { downloadFile } from "../utils/shared";
+import type UploadSet from "sap/m/upload/UploadSet";
 
 /**
  * @namespace sphinx.project.controller
@@ -105,6 +109,11 @@ export default class Project extends Base {
     this.setModel(new JSONModel(projectSteps), "project");
 
     this.setModel(new JSONModel(mockStepPool), "stepPool");
+
+    let projectDocumentModel = {
+      ...mockProjectDocumentData,
+    } as ProjectDocumentModel;
+    this.setModel(new JSONModel(projectDocumentModel), "PrjDocumentInit");
 
     //Default Route
     this.router
@@ -198,10 +207,6 @@ export default class Project extends Base {
         const args = <DetailRouteArgs>Event.getParameter("arguments");
         const sBranchId = args?.branchId;
 
-        if (sBranchId) {
-          this.loadProject(sBranchId);
-        }
-
         // Load workflow data for the project
         const oWorkflowModel = this.getModel("workflowData");
 
@@ -213,7 +218,13 @@ export default class Project extends Base {
           console.log(oWorkflowModel.getData());
         }
 
-        console.log(oWorkflowModel.getData());
+        if (sBranchId) {
+          return this.loadProject(sBranchId);
+        }
+      })
+      .then(() => {
+        this.getListFileProjInit();
+        this.loadProjectSteps(this.branchId);
       })
       .catch((error) => {
         MessageBox.error(error);
@@ -562,102 +573,117 @@ export default class Project extends Base {
 
   //#region Fetch data
   private loadProject(BranchId: string) {
-    const projectInitModel = this.getModel("projectInitForm");
-    const oDataModel = this.getModel<ODataModel>();
+    return new Promise((resolve, reject) => {
+      const projectInitModel = this.getModel("projectInitForm");
+      const oDataModel = this.getModel<ODataModel>();
 
-    oDataModel.setUseBatch(false);
-    oDataModel.read(`/ProjectSet('${BranchId}')`, {
-      success: (response: ODataResponse<ProjectFormData>) => {
-        const updates: Record<string, string> = {};
+      oDataModel.setUseBatch(false);
+      oDataModel.read(`/ProjectSet('${BranchId}')`, {
+        success: (response: ODataResponse<ProjectFormData>) => {
+          const updates: Record<string, string> = {};
 
-        const allowedRegion = ["", "1", "2", "KHAC"];
-        if (response.Region && !allowedRegion.includes(response.Region)) {
-          updates.Region = "KHAC";
-          updates.regionKhac = response.Region;
-        } else {
-          updates.regionKhac = "";
-        }
+          const allowedRegion = ["", "1", "2", "KHAC"];
+          if (response.Region && !allowedRegion.includes(response.Region)) {
+            updates.Region = "KHAC";
+            updates.regionKhac = response.Region;
+          } else {
+            updates.regionKhac = "";
+          }
 
-        const allowedArea = [
-          "",
-          "1",
-          "1B",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "6B",
-          "7",
-          "8",
-          "8B",
-          "9",
-          "10",
-          "11",
-          "KHAC",
-        ];
-        if (response.Area && !allowedArea.includes(response.Area)) {
-          updates.Area = "KHAC";
-          updates.areaKhac = response.Area;
-        } else {
-          updates.areaKhac = "";
-        }
+          const allowedArea = [
+            "",
+            "1",
+            "1B",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "6B",
+            "7",
+            "8",
+            "8B",
+            "9",
+            "10",
+            "11",
+            "KHAC",
+          ];
+          if (response.Area && !allowedArea.includes(response.Area)) {
+            updates.Area = "KHAC";
+            updates.areaKhac = response.Area;
+          } else {
+            updates.areaKhac = "";
+          }
 
-        const allowedPlanType = ["", "1", "2", "KHAC"];
-        if (response.PlanType && !allowedPlanType.includes(response.PlanType)) {
-          updates.PlanType = "KHAC";
-          updates.planTypeKhac = response.PlanType;
-        } else {
-          updates.planTypeKhac = "";
-        }
+          const allowedPlanType = ["", "1", "2", "KHAC"];
+          if (
+            response.PlanType &&
+            !allowedPlanType.includes(response.PlanType)
+          ) {
+            updates.PlanType = "KHAC";
+            updates.planTypeKhac = response.PlanType;
+          } else {
+            updates.planTypeKhac = "";
+          }
 
-        const allowedProjType = [
-          "",
-          "DI_DOI",
-          "MO_MOI",
-          "THUE_THEM",
-          "CAI_TAO",
-          "KHAC",
-        ];
-        if (response.ProjType && !allowedProjType.includes(response.ProjType)) {
-          updates.ProjType = "KHAC";
-          updates.loaiCongTrinhKhac = response.ProjType;
-        } else {
-          updates.loaiCongTrinhKhac = "";
-        }
+          const allowedProjType = [
+            "",
+            "DI_DOI",
+            "MO_MOI",
+            "THUE_THEM",
+            "CAI_TAO",
+            "KHAC",
+          ];
+          if (
+            response.ProjType &&
+            !allowedProjType.includes(response.ProjType)
+          ) {
+            updates.ProjType = "KHAC";
+            updates.loaiCongTrinhKhac = response.ProjType;
+          } else {
+            updates.loaiCongTrinhKhac = "";
+          }
 
-        const allowedUnitType = ["", "CN", "PGD", "HO", "KHAC"];
-        if (response.UnitType && !allowedUnitType.includes(response.UnitType)) {
-          updates.UnitType = "KHAC";
-          updates.loaiHinhDonViKhac = response.UnitType;
-        } else {
-          updates.loaiHinhDonViKhac = "";
-        }
+          const allowedUnitType = ["", "CN", "PGD", "HO", "KHAC"];
+          if (
+            response.UnitType &&
+            !allowedUnitType.includes(response.UnitType)
+          ) {
+            updates.UnitType = "KHAC";
+            updates.loaiHinhDonViKhac = response.UnitType;
+          } else {
+            updates.loaiHinhDonViKhac = "";
+          }
 
-        const allowedBankName = ["", "VPBANK", "GPBANK", "KHAC"];
-        if (response.BankName && !allowedBankName.includes(response.BankName)) {
-          updates.BankName = "KHAC";
-          updates.tenNganHangKhac = response.BankName;
-        } else {
-          updates.tenNganHangKhac = "";
-        }
+          const allowedBankName = ["", "VPBANK", "GPBANK", "KHAC"];
+          if (
+            response.BankName &&
+            !allowedBankName.includes(response.BankName)
+          ) {
+            updates.BankName = "KHAC";
+            updates.tenNganHangKhac = response.BankName;
+          } else {
+            updates.tenNganHangKhac = "";
+          }
 
-        projectInitModel?.setProperty("/", {
-          ...response,
-          ...updates,
-        });
-        this.branchId = response.BranchId;
+          projectInitModel?.setProperty("/", {
+            ...response,
+            ...updates,
+          });
+          this.branchId = response.BranchId;
 
-        this.getModel("ProjectModel")?.setProperty(
-          "/Step",
-          response.Step || "0",
-        );
+          this.getModel("ProjectModel")?.setProperty(
+            "/Step",
+            response.Step || "0",
+          );
 
-        this.step = response.Step || "0";
-      },
-      error: (error: ODataError) => {
-        MessageBox.error(error.message || "Error Please try again later");
-      },
+          this.step = response.Step || "0";
+          resolve(true);
+        },
+        error: (error: ODataError) => {
+          reject(error);
+        },
+      });
     });
   }
 
@@ -789,12 +815,10 @@ export default class Project extends Base {
   }
 
   public onPressStep(oEvent: any) {
-    const ctx = oEvent.getSource().getBindingContext("project");
-    const step = ctx?.getObject();
-    MessageBox.information(`Bước: ${step?.StepName || step?.StepId}`);
-
-    this.branchId = step?.BranchId || "";
-
+    // const ctx = oEvent.getSource().getBindingContext("project");
+    // const step = ctx?.getObject();
+    // MessageBox.information(`Bước: ${step?.StepName || step?.StepId}`);
+    // this.branchId = step?.BranchId || "";
     // this.router.navTo("RouteStepDetail", {
     //   branchId: this.branchId,
     // });
@@ -868,7 +892,6 @@ export default class Project extends Base {
       const form = {
         ...SelectedItem,
       };
-      console.log(form);
 
       this.detailProjectStepDialog.setModel(
         new JSONModel(form),
@@ -890,12 +913,9 @@ export default class Project extends Base {
 
     oDataModel.read("/ProjectStepSet", {
       filters: [new Filter("BranchId", "EQ", branchId)],
-      success: (
-        response: ODataResponse<
-          ProjectStepItem[] | { results: ProjectStepItem[] }
-        >,
-      ) => {
+      success: (response: ODataResponses<ProjectStepItem[]>) => {
         const steps = Array.isArray(response) ? response : response.results;
+        console.log(steps);
         this.getModel(modelName)?.setProperty("/StepList", steps || []);
       },
       error: (error: ODataError) => {
@@ -953,6 +973,14 @@ export default class Project extends Base {
   //#endregion validation
 
   //#region Header formatter
+  public formatStepName(stepId: string): string {
+    const stepPool = this.getModel("stepPool")?.getData() as
+      | { availableSteps?: { StepId: string; StepName: string }[] }
+      | undefined;
+    const step = stepPool?.availableSteps?.find((s) => s.StepId === stepId);
+    return step?.StepName || stepId;
+  }
+
   public formatHeaderTitle(isCreateStage: boolean, branchName: string): string {
     return isCreateStage ? "Khởi tạo Hồ sơ Dự án" : branchName;
   }
@@ -969,6 +997,23 @@ export default class Project extends Base {
     return map[statusKey] ?? statusKey;
   }
 
+  public formatStepStatus(statusKey: string): { text: string; state: string } {
+    const map: Record<string, { text: string; state: string }> = {
+      "1": { text: "Chưa triển khai", state: "Warning" },
+      "2": { text: "Đang triển khai", state: "Information" },
+      "3": { text: "Hoàn thành", state: "Success" },
+    };
+    return map[statusKey] ?? { text: statusKey, state: "None" };
+  }
+
+  public formatStepStatusText(statusKey: string): string {
+    return this.formatStepStatus(statusKey).text;
+  }
+
+  public formatStepStatusState(statusKey: string): string {
+    return this.formatStepStatus(statusKey).state;
+  }
+
   public getState(statusKey: string): string {
     const map: Record<string, string> = {
       "1": "Warning",
@@ -978,7 +1023,7 @@ export default class Project extends Base {
   }
   //#endregion Header formatter
 
-  //#region upload FILE
+  //#region FileHadler
 
   public async onAfterItemAdded(event: UploadSet$AfterItemAddedEvent) {
     const item = event.getParameter("item");
@@ -1042,7 +1087,7 @@ export default class Project extends Base {
         const text = await response.text();
         MessageBox.error(text);
       }
-      const objectKey = response.headers.get("obeject-key");
+      const FileId = response.headers.get("obeject-key");
       MessageBox.success("file success");
       this.getListFileProjInit();
     } catch (error) {
@@ -1070,7 +1115,7 @@ export default class Project extends Base {
   public getListFileProjInit() {
     const oDataModel = this.getModel<ODataModel>();
     oDataModel.setUseBatch(false);
-    const model = this.getModel("detailPRZ9");
+    const model = this.getModel("PrjDocumentInit");
 
     const filters = [
       new Filter("BranchId", FilterOperator.EQ, this.branchId),
@@ -1080,45 +1125,53 @@ export default class Project extends Base {
     oDataModel.read("/ProjectFileSet", {
       filters: filters,
       success: (odata: ODataResponse<any>) => {
-        model.setProperty("listFileZ9", odata.results);
+        model.setProperty("DocumentList", odata.results);
       },
       error: () => {},
     });
   }
 
-  public onDownLoadFilePRZ9(event: JQuery.ClickEvent) {
-      const clickeItem = $(event.target);
-      const itemId = clickeItem.attr("id");
-      if (itemId?.includes("Button")) {
-        return;
+  public onDownLoadFile(event: JQuery.ClickEvent) {
+    const clickeItem = $(event.target);
+    const itemId = clickeItem.attr("id");
+    if (itemId?.includes("Button")) {
+      return;
+    }
+    let currentItemId = <string>$(event.currentTarget).attr("id");
+    if (currentItemId.endsWith("-listItem")) {
+      currentItemId = currentItemId.slice(0, -"-listItem".length);
+    }
+    const clickedItem = UI5Element.getElementById(
+      currentItemId,
+    ) as UploadSetItem;
+    if (clickedItem) {
+      const fileKey = <string>clickedItem.data("FileId");
+      if (fileKey) {
+        const Path = `${this.servicePath}/ProjectFileSet(BranchId='${this.branchId}', StepId='${this.step}',FileId='${fileKey}')/$value`;
+        downloadFile(Path);
       }
-      let currentItemId = <string>$(event.currentTarget).attr("id");
-      if (currentItemId.endsWith("-listItem")) {
-        currentItemId = currentItemId.slice(0, -"-listItem".length);
-      }
-      const clickedItem = UI5Element.getElementById(currentItemId) as UploadSetItem;
-      if (clickeItem) {
-        const fileKey = <string>clickedItem.data("objectKeyDataZ9");
-        if (fileKey) {
-          const Path = `/sap/opu/odata/sap/ZODATA_MSTT_SP9_SRV/AttachmentFileSet(Magms='${this.Magms}',ObjectKey='${fileKey}', Manhomcv='3')/$value`;
-          downloadFile(Path);
-        }
-      }
+    }
   }
 
   public onItemDeleteFileZ9(event: UploadSet$BeforeItemRemovedEvent) {
-    //   event.preventDefault();
-    //   const item = event.getParameter("item") as UploadSetItem;
-    //   const FileName = item.getFileName();
-    //   const uploadSet = this.getControlById<UploadSet>("fileZ9");
-    //   const objectKey = item.data("objectKeyDataZ9") as string;
-    //   const Path = `/AttachmentFileSet(Magms='${this.Magms}',ObjectKey='${objectKey}', Manhomcv='3', Wiid='')`;
-    //   this.getComponentModel("PRZ9").setUseBatch(false);
-    //   this.getComponentModel("PRZ9").remove(Path, {
-    //     success: () => {
-    //       uploadSet.removeItem(item);
-    //     },
-    //     error: (errorL: ODataError) => {},
-    //   });
+    event.preventDefault();
+    const item = event.getParameter("item") as UploadSetItem;
+    const FileName = item.getFileName();
+
+    const uploadSet = this.getControlById<UploadSet>("fileZ9");
+    const FileId = item.data("FileId") as string;
+
+    const Path = `/ProjectFileSet(BranchId='${this.branchId}',FileId='${FileId}', StepId='${this.step}')`;
+
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+    oDataModel.remove(Path, {
+      success: () => {
+        uploadSet.removeItem(item);
+      },
+      error: (errorL: ODataError) => {},
+    });
   }
+
+  //#endregion FileHadler
 }

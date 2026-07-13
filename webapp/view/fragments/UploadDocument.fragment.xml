@@ -4,6 +4,7 @@
     xmlns:mvc="sap.ui.core.mvc"
     xmlns:form="sap.ui.layout.form"
     xmlns:u="sap.m.upload"
+    xmlns:customData="http://schemas.sap.com/sapui5/extension/sap.ui.core.CustomData/1"
 >
     <Panel>
         <VBox>
@@ -12,29 +13,29 @@
                 <u:UploadSet
                     id="UploadSetProj"
                     mode="None"
-                    items="{ProjectDocumentInit>/DocumentList}"
-                    beforeItemRemoved="onBeforeItemRemoved"
-                    beforeItemAdded="onBeforeItemAdded"
                     afterItemAdded="onAfterItemAdded"
+                    items="{PrjDocumentInit>/DocumentList}"
                     uploadEnabled="true"
+                    selectionChanged=".onDownLoadFile"
                 >
                     <u:items>
                         <u:UploadSetItem
-                            url="{ProjectDocumentInit>Url}"
-                            fileName="{ProjectDocumentInit>FileName}"
-                            mediaType="{ProjectDocumentInit>Mimetype}"
-                            openPressed="onOpenPressed"
+                            fileName="{PrjDocumentInit>Filename}"
+                            mediaType="{PrjDocumentInit>MimeType}"
+                            removePressed="onItemDeleteFileZ9"
+                            customData:FileId="{PrjDocumentInit>FileId}"
                             visibleEdit="false"
+                            url="{PrjDocumentInit>Filename}"
                         >
                             <u:attributes>
                                 <ObjectAttribute
                                     title="Người tạo"
-                                    text="{ProjectDocumentInit>CreateBy}"
+                                    text="{PrjDocumentInit>CreateBy}"
                                     active="false"
                                 />
                                 <ObjectAttribute
                                     title="Ngày tạo"
-                                    text="{ProjectDocumentInit>CreateDate} {ProjectDocumentInit>CreateTime}"
+                                    text="{PrjDocumentInit>CreateDate} {PrjDocumentInit>CreateTime}"
                                     active="false"
                                 />
                             </u:attributes>

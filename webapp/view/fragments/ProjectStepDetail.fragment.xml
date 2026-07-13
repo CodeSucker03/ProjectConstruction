@@ -16,12 +16,8 @@
         <content>
             <VBox class="sapUiMediumMargin">
                 <MessageStrip
-                    text="{projectStepDetail>StatusText}"
-                    type="{= ${projectStepDetail>Status} === '2'
-                        ? 'Success'
-                        : ${projectStepDetail>Status} === '1'
-                        ? 'Warning'
-                        : 'None'}"
+                    text="{path: 'projectStepDetail>Status', formatter: '.formatStepStatusText'}"
+                    type="{path: 'projectStepDetail>Status', formatter: '.formatStepStatusState'}"
                     showIcon="true"
                     
                     class="sapUiMediumMarginBottom" />
@@ -39,7 +35,7 @@
                                 <f:content>
                                     <Label text="Tên bước" />
                                     <Input
-                                        value="{projectStepDetail>StepName}"
+                                        value="{path: 'projectStepDetail>StepId', formatter: '.formatStepName'}"
                                         editable="false"
                                     />
 

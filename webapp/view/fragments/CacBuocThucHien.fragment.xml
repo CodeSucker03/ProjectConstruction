@@ -43,14 +43,14 @@
         <t:Table
             id="tableSteps"
             rows="{project>/StepList}"
-            selectionMode="MultiToggle"
+            selectionMode="Single"
             selectionBehavior="Row"
             rowSelectionChange="onRowSelectionChange"
             
         >
             <t:columns>
                 <t:Column>
-                    <Label text="{i18n>stt}" />
+                    <Label text="{i18n>StepId}" />
                     <t:template>
                         <Text text="{project>StepId}" />
                     </t:template>
@@ -60,7 +60,7 @@
                     <Label text="{i18n>tenBuoc}" />
                     <t:template>
                         <Link
-                            text="{project>StepName}"
+                            text="{path: 'project>StepId', formatter: '.formatStepName'}"
                             press="onPressStep"
                         />
                     </t:template>
@@ -70,14 +70,9 @@
                     <Label text="{i18n>trangThai}" />
                     <t:template>
                         <ObjectStatus
-                            text="{project>StatusText}"
-                            state="{
-                                        = ${project>Status} === '2'
-                                        ? 'Success'
-                                        : ${project>Status} === '1'
-                                        ? 'Warning'
-                                        : 'None'
-                                    }"
+                            text="{path: 'project>Status', formatter: '.formatStepStatusText'}"
+                            inverted="true"
+                            state="{path: 'project>Status', formatter: '.formatStepStatusState'}"
                         />
                     </t:template>
                 </t:Column>

@@ -87,8 +87,8 @@ export interface ProjectStepItem {
   PlanStart: string;
   StartStatus: string;
   Deadline: string;
-  StepName: string;
-  StatusText: string;
+  StepName?: string;
+  StatusText?: string;
 }
 
 export interface StepListPayload {
