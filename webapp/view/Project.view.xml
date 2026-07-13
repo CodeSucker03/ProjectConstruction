@@ -272,7 +272,7 @@
                     app:buttonData="Y"
                     visible="{= ${ProjectModel>/isApproveStage}}"
                     enabled="{= ${ProjectModel>/Step} === '4' || ${ProjectModel>/Step} === '5' || ${ProjectModel>/Step} === '1' }"
-                    press="onPressAction"
+                    press="onPressApprovalStage"
                 />
                 <Button
                     type="Reject"
@@ -281,7 +281,7 @@
                     icon="sap-icon://decline"
                     visible="{= ${ProjectModel>/isApproveStage} }"
                     enabled="{= ${ProjectModel>/Step} === '4' || ${ProjectModel>/Step} === '5' || ${ProjectModel>/Step} === '1' }"
-                    press="onPressAction"
+                    press="onPressApprovalStage"
                 />
                 <Button
                     type="Attention"
@@ -290,7 +290,7 @@
                     icon="sap-icon://edit"
                     visible="{= ${ProjectModel>/isApproveStage} }"
                     enabled="{= ${ProjectModel>/Step} === '4' || ${ProjectModel>/Step} === '5' || ${ProjectModel>/Step} === '1'}"
-                    press="onPressAction="
+                    press="onPressApprovalStage"
                 />
             </OverflowToolbar>
         </uxap:footer>

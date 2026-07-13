@@ -28,7 +28,10 @@ import MessageToast from "sap/m/MessageToast";
 import Filter from "sap/ui/model/Filter";
 import type Dialog from "sap/m/Dialog";
 import type UploadSetItem from "sap/m/upload/UploadSetItem";
-import type { UploadSet$BeforeItemRemovedEvent } from "sap/m/upload/UploadSet";
+import type {
+  UploadSet$AfterItemAddedEvent,
+  UploadSet$BeforeItemRemovedEvent,
+} from "sap/m/upload/UploadSet";
 import type {
   DetailRouteArgs,
   ProjectFormData,
@@ -40,6 +43,9 @@ import type {
   ODataErrorResponse,
   ODataResponse,
 } from "../types/odata";
+import FilterOperator from "sap/ui/model/FilterOperator";
+import UI5Element from "sap/ui/core/Element";
+import { downloadFile } from "../utils/shared";
 
 /**
  * @namespace sphinx.project.controller
@@ -51,11 +57,16 @@ export default class Project extends Base {
   private stepTable: Table;
   private workItemId: string;
   private detailProjectStepDialog: Dialog;
+  private servicePath: string;
+  private csrfToken: string | null;
+  private step: string;
 
   public override onInit(): void {
     this.router = this.getRouter();
 
     this.stepTable = this.getControlById("tableSteps");
+
+    this.servicePath = "/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV";
 
     let oModel = new JSONModel(mockProjectInitialData);
     this.setModel(oModel, "projectInitForm");
@@ -197,7 +208,7 @@ export default class Project extends Base {
         const sWorkItemId = args?.workItemId;
 
         if (sWorkItemId) {
-          oWorkflowModel.setProperty("/workItemId", sWorkItemId );
+          oWorkflowModel.setProperty("/workItemId", sWorkItemId);
           this.workItemId = sWorkItemId;
           console.log(oWorkflowModel.getData());
         }
@@ -304,7 +315,8 @@ export default class Project extends Base {
   }
 
   // Step 1 Approve / Reject / Back author
-  public onPressAction(event: Button$PressEvent) {
+  public onPressApprovalStage(event: Button$PressEvent) {
+    this.getView()?.setBusy(true);
     const button = event.getSource();
     const actionData = button.data("buttonData") as string;
 
@@ -318,16 +330,18 @@ export default class Project extends Base {
           oDataModel.create(
             "/ProcessExecuteSet",
             {
-              Wild: this.workItemId,
+              WiId: this.workItemId,
               Action: actionData,
               BranchId: this.branchId,
             },
             {
               success: () => {
                 MessageBox.success("");
+                this.getView()?.setBusy(false);
                 button.setEnabled(false);
               },
               error: (error: ODataErrorResponse) => {
+                this.getView()?.setBusy(false);
                 console.log(error);
               },
             },
@@ -338,7 +352,7 @@ export default class Project extends Base {
   }
 
   // Step 2: Assign Users Submit
-  public async onActionAssignSubmit(): Promise<void> {
+  public onActionAssignSubmit() {
     this.getView()?.setBusy(true);
 
     try {
@@ -426,27 +440,44 @@ export default class Project extends Base {
               },
       };
 
-      await new Promise<void>((resolve, reject) => {
-        oDataModel.create("/AssignSet", payload, {
-          success: () => resolve(),
-          error: reject,
-        });
-      });
+      // API ASSIGNMENT
+      // await new Promise<void>((resolve, reject) => {
+      //   oDataModel.create("/AssignSet", payload, {
+      //     success: () => resolve(),
+      //     error: reject,
+      //   });
+      // });
 
       // Temporary workflow
       let workFlow = { BranchId: this.branchId };
 
-      oDataModel.create("/StartProcessSet", workFlow, {
-        success: (response: ODataResponse) => {
-          console.log(response);
+      MessageBox.confirm("Xác nhận", {
+        actions: ["Xác nhận", "Huỷ"],
+        emphasizedAction: "Xác nhận",
+        onClose: (action: string) => {
+          if (action === "Xác nhận") {
+            oDataModel.create(
+              "/StartProcessSet",
+              {
+                WiId: this.workItemId,
+                Action: "Y",
+                BranchId: this.branchId,
+              },
+              {
+                success: (response: ODataResponse) => {
+                  console.log(response);
 
-          this.getView()?.setBusy(false);
-          MessageBox.success("Đã gửi thông tin nhà thầu thành công!");
-        },
-        error: (error: ODataError) => {
-          this.getView()?.setBusy(false);
+                  this.getView()?.setBusy(false);
+                  MessageBox.success("Đã phân công thành công!");
+                },
+                error: (error: ODataError) => {
+                  this.getView()?.setBusy(false);
 
-          MessageBox.error(error as string);
+                  MessageBox.error(error as string);
+                },
+              },
+            );
+          }
         },
       });
     } catch (e) {
@@ -458,6 +489,7 @@ export default class Project extends Base {
 
   // Step 3: Send Contract
   public onActionSendContractor() {
+    this.getView()?.setBusy(true);
     const projectModel = this.getModel("projectInitForm");
     const data = <ProjectFormData>projectModel?.getData();
 
@@ -477,17 +509,44 @@ export default class Project extends Base {
 
     const oDataModel = this.getModel<ODataModel>();
     oDataModel.setUseBatch(false);
-    oDataModel.create("/ProjectSet", payload, {
-      success: (response: ODataResponse) => {
-        console.log(response);
+    MessageBox.confirm("Xác nhận", {
+      actions: ["Xác nhận", "Huỷ"],
+      emphasizedAction: "Xác nhận",
+      onClose: (action: string) => {
+        if (action === "Xác nhận") {
+          oDataModel.create("/ProjectSet", payload, {
+            success: (response: ODataResponse) => {
+              console.log(response);
 
-        this.getView()?.setBusy(false);
-        MessageBox.success("Đã gửi thông tin nhà thầu thành công!");
-      },
-      error: (error: ODataError) => {
-        this.getView()?.setBusy(false);
+              oDataModel.create(
+                "/StartProcessSet",
+                {
+                  WiId: this.workItemId,
+                  Action: "Y",
+                  BranchId: this.branchId,
+                },
+                {
+                  success: (response: ODataResponse) => {
+                    console.log(response);
 
-        MessageBox.error(error as string);
+                    this.getView()?.setBusy(false);
+                    MessageBox.success("Đã gửi thông tin nhà thầu thành công!");
+                  },
+                  error: (error: ODataError) => {
+                    this.getView()?.setBusy(false);
+
+                    MessageBox.error(error as string);
+                  },
+                },
+              );
+            },
+            error: (error: ODataError) => {
+              this.getView()?.setBusy(false);
+
+              MessageBox.error(error as string);
+            },
+          });
+        }
       },
     });
   }
@@ -593,6 +652,8 @@ export default class Project extends Base {
           "/Step",
           response.Step || "0",
         );
+
+        this.step = response.Step || "0";
       },
       error: (error: ODataError) => {
         MessageBox.error(error.message || "Error Please try again later");
@@ -848,7 +909,7 @@ export default class Project extends Base {
   public onValidateMaBook(oEvent: any) {
     let oInput = oEvent.getSource();
     let sValue = oInput.getValue();
-    let regex = /^VN\d{8}$/; // Ví dụ mẫu kiểm tra VN + 8 ký tự số
+    let regex = /^VN\d{7}$/; // Ví dụ mẫu kiểm tra VN + 8 ký tự số
 
     if (!regex.test(sValue)) {
       oInput.setValueState("Warning");
@@ -919,117 +980,130 @@ export default class Project extends Base {
 
   //#region upload FILE
 
-  public async uploadFileZ9(item: UploadSetItem) {
-    //   const File = item.getFileObject() as Blob;
-    //   if (!File) {
-    //     return;
-    //   }
-    //   try {
-    //     if (!this.csrfToken) {
-    //       await this.fetchCsrfToken();
-    //     }
-    //     const fileName = item.getFileName();
-    //     const contentType = this.getMineType(fileName);
-    //     // check url for workitemid
-    //     const url = window.location.href;
-    //     const workItemId = url.split("WorkitemId=")[1] || "";
-    //     const slug = `${this.Magms}|3|${workItemId}|${fileName}`;
-    //     const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
-    //       const reader = new FileReader();
-    //       reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-    //       reader.onerror = reject;
-    //       reader.readAsArrayBuffer(File);
-    //     });
-    //     const blob = new Blob([arrayBuffer], { type: contentType });
-    //     let response = await fetch(`${this.servicePath}/AttachmentFileSet`, {
-    //       method: "POST",
-    //       headers: {
-    //         "Content-type": contentType,
-    //         "x-csrf-token": this.csrfToken as string,
-    //         slug: encodeURIComponent(slug),
-    //         "X-Requested-With": "XMLHttpRequest",
-    //       },
-    //       body: blob,
-    //       credentials: "include",
-    //     });
-    //     if (response.status === 403) {
-    //       // Expired token
-    //       await this.fetchCsrfToken();
-    //       response = await fetch(`${this.servicePath}/AttachmentFileSet`, {
-    //         method: "POST",
-    //         headers: {
-    //           "Content-type": contentType,
-    //           "x-csrf-token": this.csrfToken as string,
-    //           slug: encodeURIComponent(slug),
-    //           "X-Requested-With": "XMLHttpRequest",
-    //         },
-    //         body: blob,
-    //         credentials: "include",
-    //       });
-    //     }
-    //     if (!response.ok) {
-    //       const text = await response.text();
-    //       MessageBox.error(text);
-    //     }
-    //     const objectKey = response.headers.get("obeject-key");
-    //     MessageBox.success("file success");
-    //     this.getListFileZ9();
-    //   } catch (error) {
-    //     MessageBox.error(error as string);
-    //   }
+  public async onAfterItemAdded(event: UploadSet$AfterItemAddedEvent) {
+    const item = event.getParameter("item");
+    if (item) {
+      item.setVisibleEdit(false);
+      await this.uploadFile(item);
+    }
+  }
+
+  public async uploadFile(item: UploadSetItem) {
+    const File = item.getFileObject() as Blob;
+    if (!File) {
+      return;
+    }
+    try {
+      if (!this.csrfToken) {
+        await this.fetchCsrfToken();
+      }
+      const fileName = item.getFileName();
+      const contentType = this.getMineType(fileName);
+      // check url for workitemid
+      // const url = window.location.href;
+      // const workItemId = url.split("WorkitemId=")[1] || "";
+      const slug = `${this.branchId}|${this.step}|${fileName}`;
+
+      const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(File);
+      });
+
+      const blob = new Blob([arrayBuffer], { type: contentType });
+      let response = await fetch(`${this.servicePath}/ProjectFileSet`, {
+        method: "POST",
+        headers: {
+          "Content-type": contentType,
+          "x-csrf-token": this.csrfToken as string,
+          slug: encodeURIComponent(slug),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: blob,
+        credentials: "include",
+      });
+      if (response.status === 403) {
+        // Expired token
+        await this.fetchCsrfToken();
+        response = await fetch(`${this.servicePath}/ProjectFileSet`, {
+          method: "POST",
+          headers: {
+            "Content-type": contentType,
+            "x-csrf-token": this.csrfToken as string,
+            slug: encodeURIComponent(slug),
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: blob,
+          credentials: "include",
+        });
+      }
+      if (!response.ok) {
+        const text = await response.text();
+        MessageBox.error(text);
+      }
+      const objectKey = response.headers.get("obeject-key");
+      MessageBox.success("file success");
+      this.getListFileProjInit();
+    } catch (error) {
+      MessageBox.error(error as string);
+    }
   }
 
   private async fetchCsrfToken() {
-    //   const response = await fetch(this.servicePath + "/", {
-    //     method: "GET",
-    //     headers: {
-    //       "x-csrf-token": "Fetch",
-    //     },
-    //     credentials: "include",
-    //   });
-    //   if (!response.ok) {
-    //     throw new Error("No token");
-    //   }
-    //   this.csrfToken = response.headers.get("x-csrf-token");
-    //   if (!this.csrfToken) {
-    //     throw new Error("CSRF token dont exist in response");
-    //   }
+    const response = await fetch(this.servicePath + "/", {
+      method: "GET",
+      headers: {
+        "x-csrf-token": "Fetch",
+      },
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error("No token");
+    }
+    this.csrfToken = response.headers.get("x-csrf-token");
+    if (!this.csrfToken) {
+      throw new Error("CSRF token dont exist in response");
+    }
   }
 
-  public getListFileZ9() {
-    //   this.getComponentModel("PRZ9").setUseBatch(false);
-    //   const model = this.getModel("detailPRZ9");
-    //   const filters = [
-    //     new Filter("Magms", FilterOperator.EQ, this.Magms),
-    //     new Filter("Manhomcv", FilterOperator.EQ, "3"),
-    //   ];
-    //   this.getComponentModel("PRZ9").read("/AttachmentListSet", {
-    //     filters: filters,
-    //     success: (odata: ODataResponse<any>) => {
-    //       model.setProperty("listFileZ9", odata.results);
-    //     },
-    //     error: () => {},
-    //   });
+  public getListFileProjInit() {
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+    const model = this.getModel("detailPRZ9");
+
+    const filters = [
+      new Filter("BranchId", FilterOperator.EQ, this.branchId),
+      new Filter("StepId", FilterOperator.EQ, this.step),
+    ];
+
+    oDataModel.read("/ProjectFileSet", {
+      filters: filters,
+      success: (odata: ODataResponse<any>) => {
+        model.setProperty("listFileZ9", odata.results);
+      },
+      error: () => {},
+    });
   }
 
   public onDownLoadFilePRZ9(event: JQuery.ClickEvent) {
-    //   const clickeItem = $(event.target);
-    //   const itemId = clickeItem.attr("id");
-    //   if (itemId?.includes("Button")) {
-    //     return;
-    //   }
-    //   let currentItemId = <string>$(event.currentTarget).attr("id");
-    //   if (currentItemId.endsWith("-listItem")) {
-    //     currentItemId = currentItemId.slice(0, -"-listItem".length);
-    //   }
-    //   const clickedItem = UI5Element.getElementById(currentItemId) as UploadSetItem;
-    //   if (clickeItem) {
-    //     const fileKey = <string>clickedItem.data("objectKeyDataZ9");
-    //     if (fileKey) {
-    //       const Path = `/sap/opu/odata/sap/ZODATA_MSTT_SP9_SRV/AttachmentFileSet(Magms='${this.Magms}',ObjectKey='${fileKey}', Manhomcv='3')/$value`;
-    //       downloadFile(Path);
-    //     }
-    //   }
+      const clickeItem = $(event.target);
+      const itemId = clickeItem.attr("id");
+      if (itemId?.includes("Button")) {
+        return;
+      }
+      let currentItemId = <string>$(event.currentTarget).attr("id");
+      if (currentItemId.endsWith("-listItem")) {
+        currentItemId = currentItemId.slice(0, -"-listItem".length);
+      }
+      const clickedItem = UI5Element.getElementById(currentItemId) as UploadSetItem;
+      if (clickeItem) {
+        const fileKey = <string>clickedItem.data("objectKeyDataZ9");
+        if (fileKey) {
+          const Path = `/sap/opu/odata/sap/ZODATA_MSTT_SP9_SRV/AttachmentFileSet(Magms='${this.Magms}',ObjectKey='${fileKey}', Manhomcv='3')/$value`;
+          downloadFile(Path);
+        }
+      }
   }
 
   public onItemDeleteFileZ9(event: UploadSet$BeforeItemRemovedEvent) {

@@ -10,32 +10,31 @@
             <Title text="To trinh" />
             <VBox>
                 <u:UploadSet
-                    id="UploadSetA"
+                    id="UploadSetProj"
                     mode="None"
-                    items="{ProjectDocument>/DAUBAI_LIST}"
+                    items="{ProjectDocumentInit>/DocumentList}"
                     beforeItemRemoved="onBeforeItemRemoved"
                     beforeItemAdded="onBeforeItemAdded"
+                    afterItemAdded="onAfterItemAdded"
                     uploadEnabled="true"
-                    uploadButtonInvisible="{path:'trangThaiPheDuyet>/levels/0/Action'}"
                 >
                     <u:items>
                         <u:UploadSetItem
-                            url="{ProjectDocument>Url}"
-                            fileName="{ProjectDocument>FileName}"
-                            mediaType="{ProjectDocument>Mimetype}"
+                            url="{ProjectDocumentInit>Url}"
+                            fileName="{ProjectDocumentInit>FileName}"
+                            mediaType="{ProjectDocumentInit>Mimetype}"
                             openPressed="onOpenPressed"
                             visibleEdit="false"
-                            visibleRemove="{trangThaiPheDuyet>/levels/0/Action}"
                         >
                             <u:attributes>
                                 <ObjectAttribute
                                     title="Người tạo"
-                                    text="{ProjectDocument>CreateBy}"
+                                    text="{ProjectDocumentInit>CreateBy}"
                                     active="false"
                                 />
                                 <ObjectAttribute
                                     title="Ngày tạo"
-                                    text="{ProjectDocument>CreateDate} {ProjectDocument>CreateTime}"
+                                    text="{ProjectDocumentInit>CreateDate} {ProjectDocumentInit>CreateTime}"
                                     active="false"
                                 />
                             </u:attributes>
