@@ -1,0 +1,163 @@
+{
+  "_version": "1.60.0",
+  "sap.app": {
+    "id": "sphinx.project",
+    "type": "application",
+    "i18n": "i18n/i18n.properties",
+    "applicationVersion": {
+      "version": "0.0.1"
+    },
+    "title": "{{appTitle}}",
+    "description": "{{appDescription}}",
+    "resources": "resources.json",
+    "sourceTemplate": {
+      "id": "@sap/generator-fiori:basic",
+      "version": "1.18.7",
+      "toolsId": "3cc29f12-274d-43b1-80a4-17efb9051410"
+    },
+    "dataSources": {
+      "mainService": {
+        "uri": "/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV/",
+        "type": "OData",
+        "settings": {
+          "annotations": [],
+          "localUri": "localService/mainService/metadata.xml",
+          "odataVersion": "2.0"
+        }
+      }
+    }
+  },
+  "sap.ui": {
+    "technology": "UI5",
+    "icons": {
+      "icon": "",
+      "favIcon": "",
+      "phone": "",
+      "phone@2": "",
+      "tablet": "",
+      "tablet@2": ""
+    },
+    "deviceTypes": {
+      "desktop": true,
+      "tablet": true,
+      "phone": true
+    },
+    "fullWidth": true
+  },
+  "sap.ui5": {
+    "flexEnabled": false,
+    "dependencies": {
+      "minUI5Version": "1.120.0",
+      "libs": {
+        "sap.m": {},
+        "sap.ui.core": {}
+      }
+    },
+    "contentDensities": {
+      "compact": true,
+      "cozy": true
+    },
+    "models": {
+      "i18n": {
+        "type": "sap.ui.model.resource.ResourceModel",
+        "settings": {
+          "bundleName": "sphinx.project.i18n.i18n"
+        }
+      },
+      "": {
+        "dataSource": "mainService",
+        "preload": true,
+        "settings": {}
+      }
+    },
+    "resources": {
+      "css": [
+        {
+          "uri": "css/style.css"
+        }
+      ]
+    },
+    "routing": {
+      "config": {
+        "routerClass": "sap.m.routing.Router",
+        "controlAggregation": "pages",
+        "controlId": "app",
+        "transition": "slide",
+        "type": "View",
+        "viewType": "XML",
+        "path": "sphinx.project.view",
+        "async": true,
+        "viewPath": "sphinx.project.view"
+      },
+      "routes": [
+        {
+          "name": "RouteMain",
+          "pattern": ":?query:",
+          "target": [
+            "TargetMain"
+          ]
+        },
+        {
+          "name": "RouteProject",
+          "pattern": "detail/{branchId}",
+          "target": "TargetProject"
+        },
+        {
+          "name": "RouteEditInit",
+          "pattern": "detail/{branchId}/{workItemId}",
+          "target": "TargetProject"
+        },
+        {
+          "name": "RouteApproval",
+          "pattern": "approve/{branchId}/{workItemId}",
+          "target": "TargetProject"
+        },
+        {
+          "name": "RouteProjectCreate",
+          "pattern": "create",
+          "target": "TargetProject"
+        },
+        {
+          "name": "RouteContractor",
+          "pattern": "contractor/{branchId}/{workItemId}",
+          "target": "TargetProject"
+        },
+        {
+          "name": "RouteRoleAssignment",
+          "pattern": "role-assignment/{branchId}/{workItemId}",
+          "target": "TargetProject"
+        },
+        {
+          "name": "RouteStepDetail",
+          "pattern": "step/{branchId}",
+          "target": "TargetProject"
+        }
+      ],
+      "targets": {
+        "TargetMain": {
+          "id": "Main",
+          "name": "Main"
+        },
+        "TargetProject": {
+          "id": "Project",
+          "name": "Project"
+        },
+        "TargetStepDetail": {
+          "id": "StepDetail",
+          "name": "StepDetail"
+        },
+        "notFound": {
+          "viewId": "notFound",
+          "viewName": "NotFound",
+          "title": "{i18n>appTitle}"
+        }
+      }
+    },
+    "rootView": {
+      "viewName": "sphinx.project.view.App",
+      "type": "XML",
+      "id": "App",
+      "async": true
+    }
+  }
+}

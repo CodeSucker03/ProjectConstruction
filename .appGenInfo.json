@@ -1,0 +1,24 @@
+{
+  "generationParameters": {
+    "generationDate": "Mon Jul 13 2026 01:08:51 GMT+0700 (Indochina Time)",
+    "generatorPlatform": "Visual Studio Code",
+    "serviceType": "None",
+    "metadataFilename": "",
+    "serviceUrl": "N/A",
+    "appName": "project",
+    "appTitle": "Project Construction",
+    "appDescription": "Project Contruction",
+    "appNamespace": "sphinx",
+    "ui5Theme": "sap_horizon",
+    "ui5Version": "1.120.0",
+    "enableCodeAssist": false,
+    "enableEslint": false,
+    "enableTypeScript": true,
+    "showMockDataInfo": false,
+    "generatorVersion": "1.18.7",
+    "template": "Basic",
+    "generatorName": "SAP Fiori Application Generator",
+    "entityRelatedConfig": [],
+    "launchText": "To launch the generated application, run the following from the generated application root folder:\n\n```\n    npm start\n```"
+  }
+}

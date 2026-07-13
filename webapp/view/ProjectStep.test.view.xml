@@ -1,0 +1,138 @@
+<mvc:View
+    controllerName="sphinx.project.controller.StepDetail"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:uxap="sap.uxap"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:upload="sap.m.upload"
+>
+    <Page
+        title="Chi tiết bước"
+        showNavButton="true"
+        navButtonPress="onNavBack"
+    >
+        <content>
+            <uxap:ObjectPageLayout>
+                <uxap:headerTitle>
+                    <uxap:ObjectPageDynamicHeaderTitle>
+                        <uxap:heading>
+                            <Title text="{project>StepName}" />
+                        </uxap:heading>
+                        <uxap:expandedContent>
+                            <ObjectStatus
+                                text="{project>StatusText}"
+                                state="{ = ${project>Status} === '2' ? 'Success' : ${project>Status} === '1' ? 'Warning' : 'None' }"
+                            />
+                        </uxap:expandedContent>
+                    </uxap:ObjectPageDynamicHeaderTitle>
+                </uxap:headerTitle>
+                <uxap:sections>
+                    <!-- General Information -->
+                    <uxap:ObjectPageSection title="Thông tin thực hiện">
+                        <uxap:subSections>
+                            <uxap:ObjectPageSubSection>
+                                <f:SimpleForm
+                                    editable="true"
+                                    layout="ResponsiveGridLayout"
+                                >
+                                    <f:content>
+                                        <Label text="Tên bước" />
+                                        <Input
+                                            value="{project>StepName}"
+                                            editable="false"
+                                        />
+                                        <Label text="Trạng thái" />
+                                        <Select selectedKey="{project>Status}">
+                                            <core:Item
+                                                key="0"
+                                                text="Chưa triển khai"
+                                            />
+                                            <core:Item
+                                                key="1"
+                                                text="Đang triển khai"
+                                            />
+                                            <core:Item
+                                                key="2"
+                                                text="Hoàn thành"
+                                            />
+                                        </Select>
+                                        <Label text="Ngày bắt đầu kế hoạch" />
+                                        <DatePicker
+                                            value="{project>PlanStart}"
+                                        />
+                                        <Label text="Deadline" />
+                                        <DatePicker
+                                            value="{project>Deadline}"
+                                        />
+                                    </f:content>
+                                </f:SimpleForm>
+                            </uxap:ObjectPageSubSection>
+                        </uxap:subSections>
+                    </uxap:ObjectPageSection>
+                    <!-- Comments -->
+                    <uxap:ObjectPageSection title="Trao đổi">
+                        <uxap:subSections>
+                            <uxap:ObjectPageSubSection>
+                                <VBox>
+                                    <TextArea
+                                        rows="5"
+                                        width="100%"
+                                        value="{project>Comment}"
+                                        placeholder="Nhập nội dung trao đổi..."
+                                    />
+                                    <Toolbar>
+                                        <ToolbarSpacer />
+                                        <Button
+                                            text="Gửi bình luận"
+                                            type="Emphasized"
+                                            press="onPostComment"
+                                        />
+                                    </Toolbar>
+                                    <List items="{project>CommentList}">
+                                        <FeedListItem
+                                            sender="{project>UserName}"
+                                            text="{project>Content}"
+                                            timestamp="{project>CreateDate}"
+                                        />
+                                    </List>
+                                </VBox>
+                            </uxap:ObjectPageSubSection>
+                        </uxap:subSections>
+                    </uxap:ObjectPageSection>
+                    <!-- Attachments -->
+                    <uxap:ObjectPageSection title="Tài liệu minh chứng">
+                        <uxap:subSections>
+                            <uxap:ObjectPageSubSection>
+                                <upload:UploadSet
+                                    id="uploadSet"
+                                    instantUpload="false"
+                                    uploadCompleted="onUploadCompleted"
+                                    items="{project>AttachmentList}"
+                                >
+                                    <upload:items>
+                                        <upload:UploadSetItem
+                                            fileName="{project>FileName}"
+                                            url="{project>Url}"
+                                            mediaType="{project>MimeType}"
+                                        />
+                                    </upload:items>
+                                </upload:UploadSet>
+                            </uxap:ObjectPageSubSection>
+                        </uxap:subSections>
+                    </uxap:ObjectPageSection>
+                </uxap:sections>
+            </uxap:ObjectPageLayout>
+        </content>
+        <footer>
+            <OverflowToolbar>
+                <ToolbarSpacer />
+                <Button
+                    text="Lưu"
+                    type="Emphasized"
+                    press="onSave"
+                />
+            </OverflowToolbar>
+        </footer>
+    </Page>
+</mvc:View>

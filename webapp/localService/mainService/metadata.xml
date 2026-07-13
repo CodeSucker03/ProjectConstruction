@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="1.0" xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:sap="http://www.sap.com/Protocols/SAPData">
+    <edmx:DataServices m:DataServiceVersion="2.0">
+        <Schema Namespace="ZODATA_CONG_TRINH_VPB_SRV" xml:lang="en" sap:schema-version="1" xmlns="http://schemas.microsoft.com/ado/2008/09/edm">
+            <EntityType Name="Project" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="BranchId"/>
+                </Key>
+                <Property Name="BranchId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Step" Type="Edm.String" Nullable="false" MaxLength="1" sap:unicode="false" sap:label="Step" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ConstructionContractor" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:label="Nhà thầu th xd" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="AirConditioningContractor" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:label="Nhà thầu th dh" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="BranchName" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:label="Tên CN/PGD/Phòng/ban" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="BookId" Type="Edm.String" MaxLength="9" sap:unicode="false" sap:label="Mã book CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ElecNetCamContractor" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:label="Nhà thầu th cdm" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="InteriorContractor" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:label="Nhà thầu th nt" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ProjType" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:label="Loại công trình" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="BankName" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:label="Tên Ngân hàng, hệ si" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Region" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:label="Miền" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="UnitType" Type="Edm.String" MaxLength="255" sap:unicode="false" sap:label="Loại hình đơn vị" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Area" Type="Edm.String" MaxLength="2" sap:unicode="false" sap:label="Vùng KHCN" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Budget" Type="Edm.String" MaxLength="17" sap:unicode="false" sap:label="Ngân sách thực hiện" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Waers" Type="Edm.String" MaxLength="5" sap:unicode="false" sap:label="Currency" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false" sap:semantics="currency-code"/>
+                <Property Name="PlanStart" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:label="Thời gian triển khai" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="PlanType" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:label="Loại kế hoạch" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Status" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:label="Trạng thái" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="CreatedDate" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:label="Ngày tạo" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="CreatedBy" Type="Edm.String" MaxLength="12" sap:unicode="false" sap:label="Người tạo" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <EntityType Name="ProjectStep" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="StepId"/>
+                    <PropertyRef Name="BranchId"/>
+                </Key>
+                <Property Name="StepId" Type="Edm.String" Nullable="false" MaxLength="2" sap:unicode="false" sap:label="Step ID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="BranchId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Status" Type="Edm.String" Nullable="false" MaxLength="1" sap:unicode="false" sap:label="Trạng thái của bước" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="PlanStart" Type="Edm.String" Nullable="false" MaxLength="10" sap:unicode="false" sap:label="Thời gian triển khai" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="StartStatus" Type="Edm.String" Nullable="false" MaxLength="1" sap:unicode="false" sap:label="Trạng thái bắt đầu" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Deadline" Type="Edm.String" Nullable="false" MaxLength="10" sap:unicode="false" sap:label="Deadline step" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <EntityType Name="ProjectHeader" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="BranchId"/>
+                </Key>
+                <Property Name="BranchId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <NavigationProperty Name="StepList" Relationship="ZODATA_CONG_TRINH_VPB_SRV.ProjectHeaderToProjectStep" FromRole="FromRole_ProjectHeaderToProjectStep" ToRole="ToRole_ProjectHeaderToProjectStep"/>
+            </EntityType>
+            <EntityType Name="ProjectFile" m:HasStream="true" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="FileId"/>
+                    <PropertyRef Name="StepId"/>
+                    <PropertyRef Name="BranchId"/>
+                </Key>
+                <Property Name="FileId" Type="Edm.String" Nullable="false" MaxLength="32" sap:unicode="false" sap:label="UUID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="StepId" Type="Edm.String" Nullable="false" MaxLength="2" sap:unicode="false" sap:label="Step ID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="BranchId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Filename" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="File Name" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Content" Type="Edm.Binary" Nullable="false" sap:unicode="false" sap:label="Binary String" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Mimetype" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Attac.MIME Type" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <EntityType Name="ProjectFileList" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="FileId"/>
+                    <PropertyRef Name="StepId"/>
+                    <PropertyRef Name="BranchId"/>
+                </Key>
+                <Property Name="FileId" Type="Edm.String" Nullable="false" MaxLength="32" sap:unicode="false" sap:label="UUID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="StepId" Type="Edm.String" Nullable="false" MaxLength="2" sap:unicode="false" sap:label="Step ID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="BranchId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Filename" Type="Edm.String" sap:unicode="false" sap:label="File Name" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Content" Type="Edm.Binary" sap:unicode="false" sap:label="Binary String" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Mimetype" Type="Edm.String" sap:unicode="false" sap:label="Attac.MIME Type" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <EntityType Name="ProcessExecute" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="WiId"/>
+                    <PropertyRef Name="BranchId"/>
+                </Key>
+                <Property Name="WiId" Type="Edm.String" Nullable="false" MaxLength="12" sap:unicode="false" sap:label="Work Item ID" sap:creatable="false" sap:updatable="false" sap:sortable="false"/>
+                <Property Name="BranchId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Action" Type="Edm.String" Nullable="false" MaxLength="1" sap:unicode="false" sap:label="Action" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Status" Type="Edm.String" Nullable="false" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Message" Type="Edm.String" Nullable="false" sap:unicode="false" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Ok" Type="Edm.Boolean" Nullable="false" sap:unicode="false" sap:label="Indicator" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <EntityType Name="StartProcess" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="BranchId"/>
+                </Key>
+                <Property Name="BranchId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="WiId" Type="Edm.String" Nullable="false" MaxLength="12" sap:unicode="false" sap:label="Work Item ID" sap:creatable="false" sap:updatable="false" sap:sortable="false"/>
+            </EntityType>
+            <EntityType Name="ApprLog" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="ProjId"/>
+                    <PropertyRef Name="WfId"/>
+                    <PropertyRef Name="VersionNo"/>
+                    <PropertyRef Name="Seq"/>
+                </Key>
+                <Property Name="ProjId" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Mã CN/PGD" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="WfId" Type="Edm.String" Nullable="false" MaxLength="12" sap:unicode="false" sap:label="Workflow ID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="VersionNo" Type="Edm.String" Nullable="false" MaxLength="11" sap:unicode="false" sap:label="Doc. Version" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Seq" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="Index" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Uname" Type="Edm.String" MaxLength="12" sap:unicode="false" sap:label="User" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="WiId" Type="Edm.String" MaxLength="12" sap:unicode="false" sap:label="Work Item ID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Action" Type="Edm.String" MaxLength="1" sap:unicode="false" sap:label="Action" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="RequestDate" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:label="Ngày nhận" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="RequestTime" Type="Edm.Time" Precision="0" sap:unicode="false" sap:label="Giờ nhận" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ChangeDate" Type="Edm.String" MaxLength="10" sap:unicode="false" sap:label="Ngày thay đổi" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ChangeTime" Type="Edm.String" MaxLength="8" sap:unicode="false" sap:label="Giờ thay đổi" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="CommentText" Type="Edm.Binary" MaxLength="16" sap:unicode="false" sap:label="Comment" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <EntityType Name="BaoCao" m:HasStream="true" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="FileId"/>
+                </Key>
+                <Property Name="FileId" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="UUID" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Filename" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="File Name" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Content" Type="Edm.Binary" Nullable="false" sap:unicode="false" sap:label="Binary String" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Mimetype" Type="Edm.String" Nullable="false" sap:unicode="false" sap:label="Attac.MIME Type" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <EntityType Name="SLAReport" sap:content-version="1">
+                <Key>
+                    <PropertyRef Name="Id"/>
+                </Key>
+                <Property Name="Id" Type="Edm.String" Nullable="false" MaxLength="3" sap:unicode="false" sap:label="3-Byte field" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="UnitName" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:label="Text" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Region" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:label="Text" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="Content" Type="Edm.String" Nullable="false" MaxLength="255" sap:unicode="false" sap:label="Text" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="PrlDate" Type="Edm.DateTime" Nullable="false" Precision="7" sap:unicode="false" sap:label="Date" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ActualTotal" Type="Edm.String" Nullable="false" MaxLength="4" sap:unicode="false" sap:label="Undefined range (can be used for patch levels)" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="PlanTotal" Type="Edm.String" Nullable="false" MaxLength="4" sap:unicode="false" sap:label="Undefined range (can be used for patch levels)" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+                <Property Name="ResultTotal" Type="Edm.String" Nullable="false" MaxLength="100" sap:unicode="false" sap:label="Text" sap:creatable="false" sap:updatable="false" sap:sortable="false" sap:filterable="false"/>
+            </EntityType>
+            <Association Name="ProjectHeaderToProjectStep" sap:content-version="1">
+                <End Type="ZODATA_CONG_TRINH_VPB_SRV.ProjectHeader" Multiplicity="1" Role="FromRole_ProjectHeaderToProjectStep"/>
+                <End Type="ZODATA_CONG_TRINH_VPB_SRV.ProjectStep" Multiplicity="*" Role="ToRole_ProjectHeaderToProjectStep"/>
+                <ReferentialConstraint>
+                    <Principal Role="FromRole_ProjectHeaderToProjectStep">
+                        <PropertyRef Name="BranchId"/>
+                    </Principal>
+                    <Dependent Role="ToRole_ProjectHeaderToProjectStep">
+                        <PropertyRef Name="BranchId"/>
+                    </Dependent>
+                </ReferentialConstraint>
+            </Association>
+            <EntityContainer Name="ZODATA_CONG_TRINH_VPB_SRV_Entities" m:IsDefaultEntityContainer="true" sap:supported-formats="atom json xlsx">
+                <EntitySet Name="ProjectSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.Project" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="ProjectStepSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.ProjectStep" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="ProjectHeaderSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.ProjectHeader" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:addressable="false" sap:content-version="1"/>
+                <EntitySet Name="ProjectFileSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.ProjectFile" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="ProjectFileListSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.ProjectFileList" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="ProcessExecuteSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.ProcessExecute" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:addressable="false" sap:content-version="1"/>
+                <EntitySet Name="StartProcessSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.StartProcess" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:addressable="false" sap:content-version="1"/>
+                <EntitySet Name="ApprLogSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.ApprLog" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <EntitySet Name="BaoCaoSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.BaoCao" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:addressable="false" sap:content-version="1"/>
+                <EntitySet Name="SLAReportSet" EntityType="ZODATA_CONG_TRINH_VPB_SRV.SLAReport" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:pageable="false" sap:content-version="1"/>
+                <AssociationSet Name="ProjectHeaderToProjectStepSet" Association="ZODATA_CONG_TRINH_VPB_SRV.ProjectHeaderToProjectStep" sap:creatable="false" sap:updatable="false" sap:deletable="false" sap:content-version="1">
+                    <End EntitySet="ProjectHeaderSet" Role="FromRole_ProjectHeaderToProjectStep"/>
+                    <End EntitySet="ProjectStepSet" Role="ToRole_ProjectHeaderToProjectStep"/>
+                </AssociationSet>
+            </EntityContainer>
+            <Annotation Term="Core.SchemaVersion" String="1.0.0" xmlns="http://docs.oasis-open.org/odata/ns/edm"/>
+            <atom:link rel="self" href="/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV/$metadata" xmlns:atom="http://www.w3.org/2005/Atom"/>
+            <atom:link rel="latest-version" href="/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV/$metadata" xmlns:atom="http://www.w3.org/2005/Atom"/>
+        </Schema>
+    </edmx:DataServices>
+</edmx:Edmx>

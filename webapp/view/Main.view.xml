@@ -1,0 +1,240 @@
+<mvc:View
+    controllerName="sphinx.project.controller.Main"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:f="sap.f"
+    xmlns:core="sap.ui.core"
+    xmlns:u="sap.ui.unified"
+    xmlns:uxap="sap.uxap"
+    xmlns:svm="sap.ui.comp.smartvariants"
+    xmlns:fb="sap.ui.comp.filterbar"
+    height="100%"
+>
+    <f:DynamicPage
+        id="page"
+        preserveHeaderStateOnScroll="true"
+        fitContent="true"
+    >
+        <f:title>
+            <f:DynamicPageTitle>
+                <f:heading>
+                    <svm:SmartVariantManagement
+                        id="svm"
+                        showExecuteOnSelection="true"
+                    />
+                </f:heading>
+                <f:expandedContent>
+                    <Label
+                        id="expandedLabel"
+                        text="No filters active"
+                    />
+                </f:expandedContent>
+                <f:snappedContent>
+                    <Label
+                        id="snappedLabel"
+                        text="No filters active"
+                    />
+                </f:snappedContent>
+            </f:DynamicPageTitle>
+        </f:title>
+        <f:header>
+            <f:DynamicPageHeader>
+                <f:content>
+                    <fb:FilterBar
+                        id="filterBar"
+                        persistencyKey="prTable"
+                        useToolbar="false"
+                        search="onSearch"
+                        filterChange=".onFilterChange"
+                        afterVariantLoad="onAfterVariantLoad"
+                    >
+                        <fb:filterGroupItems>
+                            <fb:FilterGroupItem
+                                name="FormDate"
+                                label="Từ ngày"
+                                groupName="Group1"
+                                visibleInFilterBar="true"
+                            >
+                                <fb:control>
+                                    <DatePicker
+                                        id="FormDate"
+                                        name="FormDate"
+                                        valueFormat="yyyyMMdd"
+                                        displayFormat="dd/MM/yyyy"
+                                        change=".onFieldChange"
+                                        placeholder="Chọn ngày bắt đầu"
+                                    />
+                                </fb:control>
+                            </fb:FilterGroupItem>
+
+                            <fb:FilterGroupItem
+                                name="TrangThai"
+                                label="Trạng thái"
+                                groupName="Group1"
+                                visibleInFilterBar="true"
+                            >
+                                <fb:control>
+                                    <MultiComboBox
+                                        id="GMSStatus"
+                                        items="{searchHelp>/Status}"
+                                        selectionChange="onFieldChange"
+                                        placeholder="Chọn trang thái"
+                                    >
+                                        <core:Item
+                                            key="{searchHelp>key}"
+                                            text="{searchHelp>text}"
+                                        />
+                                    </MultiComboBox>
+                                </fb:control>
+                            </fb:FilterGroupItem>
+                            <fb:FilterGroupItem
+                                name="Code"
+                                label="Mã"
+                                groupName="Group1"
+                                visibleInFilterBar="true"
+                            >
+                                <fb:control>
+                                    <MultiInput
+                                        id="Code"
+                                        name="Code"
+                                        showSuggestion="false"
+                                        showValueHelp="false"
+                                        change=".onFieldChange"
+                                        placeholder="Tìm kiếm mã"
+                                    />
+                                </fb:control>
+                            </fb:FilterGroupItem>
+                        </fb:filterGroupItems>
+                    </fb:FilterBar>
+                </f:content>
+            </f:DynamicPageHeader>
+        </f:header>
+        <f:content>
+            <Table
+                id="tableProject"
+                items="{tableProject>/rows}"
+                mode="SingleSelectLeft"
+                selectionChange="onSelectRow"
+                sticky="HeaderToolbar"
+            >
+                <headerToolbar>
+                    <OverflowToolbar>
+                        <Label
+                            text="Danh sách công trình"
+                            design="Bold"
+                        />
+                       
+                        <ToolbarSpacer />
+                        <Button
+                            text="Add Project"
+                            type="Emphasized"
+                            press=".onAddProject"
+                        />
+
+                        <ToolbarSeparator />
+                        <OverflowToolbarButton
+                            icon="sap-icon://sort"
+                            press=".sortGMS"
+                        />
+                    </OverflowToolbar>
+                </headerToolbar>
+                <noData>
+                    <IllustratedMessage />
+                </noData>
+                <columns>
+                    <Column>
+                        <Text text="Mã CN/PGD" />
+                    </Column>
+                    <Column>
+                        <Text text="Tên CN/PGD" />
+                    </Column>
+                    <Column>
+                        <Text text="Mã book" />
+                    </Column>
+                    <Column>
+                        <Text text="Loại công trình" />
+                    </Column>
+                    <Column>
+                        <Text text="Miền" />
+                    </Column>
+                    <Column>
+                        <Text text="Ngân hàng" />
+                    </Column>
+                    <Column>
+                        <Text text="Ngân sách" />
+                    </Column>
+                    <Column>
+                        <Text text="Loại kế hoạch" />
+                    </Column>
+                    <Column>
+                        <Text text="Trạng thái" />
+                    </Column>
+                    <Column>
+                        <Text text="Ngày tạo" />
+                    </Column>
+                    <Column>
+                        <Text text="Người tạo" />
+                    </Column>
+                </columns>
+
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Link
+                                text="{tableProject>BranchId}"
+                                press="navDetail"
+                            />
+                        </cells>
+                        <cells>
+                            <Text text="{tableProject>BranchName}" />
+                        </cells>
+                        <cells>
+                            <Text text="{tableProject>BookId}" />
+                        </cells>
+                        <cells>
+                            <Text
+                                text="{parts:[{path:'tableProject>ProjType'}], formatter:'.formatProjType'}"
+                            />
+                        </cells>
+
+                        <cells>
+                            <Text
+                                text="{parts:[{path:'tableProject>Region'}], formatter:'.formatRegion'}"
+                            />
+                        </cells>
+                        <cells>
+                            <Text
+                                text="{parts:[{path:'tableProject>BankName'}], formatter:'.formatBankName'}"
+                            />
+                        </cells>
+                        <cells>
+                            <Text
+                                text="{parts:[{path:'tableProject>Budget'}], formatter:'.formatBudget'}"
+                            />
+                        </cells>
+                        <cells>
+                            <Text
+                                text="{parts:[{path:'tableProject>PlanType'}], formatter:'.formatPlanType'}"
+                            />
+                        </cells>
+                        <cells>
+                            <ObjectStatus
+                                id="objectStatus"
+                                text="{parts:[{path:'tableProject>Status'}], formatter:'.getStatusText'}"
+                                state="{parts:['tableProject>Status'], formatter:'.getState'}"
+                                inverted="true"
+                                class="sapUISmallMarginBottom"
+                            />
+                        </cells>
+                        <cells>
+                            <Text text="{tableProject>CreatedDate}" />
+                        </cells>
+                        <cells>
+                            <Text text="{tableProject>CreatedBy}" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </f:content>
+    </f:DynamicPage>
+</mvc:View>

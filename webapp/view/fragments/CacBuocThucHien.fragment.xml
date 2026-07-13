@@ -1,0 +1,101 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns:t="sap.ui.table"
+    xmlns:f="sap.ui.layout.form"
+    
+>
+    <VBox width="100%">
+        <Toolbar>
+            <Title text="{i18n>danhSachBuoc}" />
+
+            <ToolbarSpacer />
+
+            <Select
+                id="selStepPool"
+                items="{stepPool>/availableSteps}"
+                change="onAddStepFromPool"
+                width="250px"
+            >
+                <core:Item
+                    key="{stepPool>StepId}"
+                    text="{stepPool>StepName}"
+                />
+            </Select>
+            <Button
+                text="Edit"
+                icon="sap-icon://edit"
+                type="Emphasized"
+                press="onOpenStepDialog"
+                enabled="{= ${stepTableModel>/selectedIndices}.length === 1}"
+            />
+
+            <Button
+                text="{i18n>xoaBuoc}"
+                icon="sap-icon://delete"
+                type="Negative"
+                press="onDeleteStep"
+                enabled="{= ${stepTableModel>/selectedIndices}.length === 1}"
+            />
+        </Toolbar>
+
+        <t:Table
+            id="tableSteps"
+            rows="{project>/StepList}"
+            selectionMode="MultiToggle"
+            selectionBehavior="Row"
+            rowSelectionChange="onRowSelectionChange"
+            
+        >
+            <t:columns>
+                <t:Column>
+                    <Label text="{i18n>stt}" />
+                    <t:template>
+                        <Text text="{project>StepId}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column >
+                    <Label text="{i18n>tenBuoc}" />
+                    <t:template>
+                        <Link
+                            text="{project>StepName}"
+                            press="onPressStep"
+                        />
+                    </t:template>
+                </t:Column>
+
+                <t:Column>
+                    <Label text="{i18n>trangThai}" />
+                    <t:template>
+                        <ObjectStatus
+                            text="{project>StatusText}"
+                            state="{
+                                        = ${project>Status} === '2'
+                                        ? 'Success'
+                                        : ${project>Status} === '1'
+                                        ? 'Warning'
+                                        : 'None'
+                                    }"
+                        />
+                    </t:template>
+                </t:Column>
+
+                <t:Column>
+                    <Label text="{i18n>ngayBatDau}" />
+                    <t:template>
+                        <Text text="{project>PlanStart}" />
+                    </t:template>
+                </t:Column>
+
+                <t:Column >
+                    <Label text="Deadline" />
+                    <t:template>
+                        <Text text="{project>Deadline}" />
+                    </t:template>
+                </t:Column>
+            </t:columns>
+        </t:Table>
+    </VBox>
+</core:FragmentDefinition>

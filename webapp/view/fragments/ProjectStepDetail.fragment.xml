@@ -1,0 +1,147 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:u="sap.m.upload"
+>
+    <Dialog
+        id="stepDialog"
+        title="{projectStepDetail>StepName}"
+        contentWidth="900px"
+        contentHeight="650px"
+        draggable="true"
+        resizable="true"
+        binding="{projectStepDetail>/}"
+    >
+        <content>
+            <VBox class="sapUiMediumMargin">
+                <MessageStrip
+                    text="{projectStepDetail>StatusText}"
+                    type="{= ${projectStepDetail>Status} === '2'
+                        ? 'Success'
+                        : ${projectStepDetail>Status} === '1'
+                        ? 'Warning'
+                        : 'None'}"
+                    showIcon="true"
+                    
+                    class="sapUiMediumMarginBottom" />
+
+                <IconTabBar>
+                    <items>
+                        <IconTabFilter
+                            text="Thông tin"
+                            icon="sap-icon://detail-view"
+                        >
+                            <f:SimpleForm
+                                editable="true"
+                                layout="ResponsiveGridLayout"
+                            >
+                                <f:content>
+                                    <Label text="Tên bước" />
+                                    <Input
+                                        value="{projectStepDetail>StepName}"
+                                        editable="false"
+                                    />
+
+                                    <Label text="Trạng thái" />
+                                    <Select selectedKey="{projectStepDetail>Status}">
+                                        <core:Item
+                                            key="0"
+                                            text="Chưa triển khai"
+                                        />
+                                        <core:Item
+                                            key="1"
+                                            text="Đang triển khai"
+                                        />
+                                        <core:Item
+                                            key="2"
+                                            text="Hoàn thành"
+                                        />
+                                    </Select>
+
+                                    <Label text="Ngày bắt đầu" />
+                                    <DatePicker value="{projectStepDetail>PlanStart}" />
+
+                                    <Label text="Deadline" />
+                                    <DatePicker value="{projectStepDetail>Deadline}" />
+                                </f:content>
+                            </f:SimpleForm>
+                        </IconTabFilter>
+
+                        <IconTabFilter
+                            text="Trao đổi"
+                            icon="sap-icon://discussion"
+                        >
+                            <VBox>
+                                <Title text="Ghi chú" />
+                                <VBox>
+                                    <TextArea
+                                        value="{ProjectStep>Comments}"
+                                        placeholder="Nhập nội dung..."
+                                        width="100%"
+                                    />
+                                </VBox>
+                            </VBox>
+                        </IconTabFilter>
+
+                        <IconTabFilter
+                            text="Tài liệu"
+                            icon="sap-icon://attachment"
+                        >
+                            <VBox>
+                                <u:UploadSet
+                                    id="UploadSetStepA"
+                                    mode="None"
+                                    items="{projectStepDetail>/DAUBAI_LIST}"
+                                    beforeItemRemoved="onBeforeItemRemoved"
+                                    beforeItemAdded="onBeforeItemAdded"
+                                    uploadEnabled="true"
+                                >
+                                    <u:items>
+                                        <u:UploadSetItem
+                                            url="{projectStepDetail>Url}"
+                                            fileName="{projectStepDetail>FileName}"
+                                            mediaType="{projectStepDetail>Mimetype}"
+                                            openPressed="onOpenPressed"
+                                            visibleEdit="false"
+                                        >
+                                            <u:attributes>
+                                                <ObjectAttribute
+                                                    title="Người tạo"
+                                                    text="{projectStepDetail>CreateBy}"
+                                                    active="false"
+                                                />
+                                                <ObjectAttribute
+                                                    title="Ngày tạo"
+                                                    text="{projectStepDetail>CreateDate} {projectStepDetail>CreateTime}"
+                                                    active="false"
+                                                />
+                                            </u:attributes>
+                                        </u:UploadSetItem>
+                                    </u:items>
+                                </u:UploadSet>
+                            </VBox>
+
+                            <!-- uploadset -->
+                        </IconTabFilter>
+                    </items>
+                </IconTabBar>
+            </VBox>
+        </content>
+
+        <beginButton>
+            <Button
+                text="Lưu"
+                type="Emphasized"
+                press=".onSaveStep"
+            />
+        </beginButton>
+
+        <endButton>
+            <Button
+                text="Đóng"
+                press=".onCloseStepDialog"
+            />
+        </endButton>
+    </Dialog>
+</core:FragmentDefinition>
