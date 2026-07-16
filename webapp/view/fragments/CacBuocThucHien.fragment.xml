@@ -4,7 +4,6 @@
     xmlns:mvc="sap.ui.core.mvc"
     xmlns:t="sap.ui.table"
     xmlns:f="sap.ui.layout.form"
-    
 >
     <VBox width="100%">
         <Toolbar>
@@ -12,25 +11,20 @@
 
             <ToolbarSpacer />
 
-            <Select
-                id="selStepPool"
-                items="{stepPool>/availableSteps}"
-                change="onAddStepFromPool"
-                width="250px"
-            >
-                <core:Item
-                    key="{stepPool>StepId}"
-                    text="{stepPool>StepName}"
-                />
-            </Select>
+
+            <Button
+                text="Add"
+                icon="sap-icon://add"
+                type="Emphasized"
+                press="openCreateStepDialog"
+            />
             <Button
                 text="Edit"
                 icon="sap-icon://edit"
                 type="Emphasized"
-                press="onOpenStepDialog"
+                press="onEditStepDialog"
                 enabled="{= ${stepTableModel>/selectedIndices}.length === 1}"
             />
-
             <Button
                 text="{i18n>xoaBuoc}"
                 icon="sap-icon://delete"
@@ -46,7 +40,6 @@
             selectionMode="Single"
             selectionBehavior="Row"
             rowSelectionChange="onRowSelectionChange"
-            
         >
             <t:columns>
                 <t:Column>
@@ -56,7 +49,7 @@
                     </t:template>
                 </t:Column>
 
-                <t:Column >
+                <t:Column>
                     <Label text="{i18n>tenBuoc}" />
                     <t:template>
                         <Link
@@ -84,10 +77,28 @@
                     </t:template>
                 </t:Column>
 
-                <t:Column >
+                <t:Column>
                     <Label text="Deadline" />
                     <t:template>
                         <Text text="{project>Deadline}" />
+                    </t:template>
+                </t:Column>
+                <t:Column>
+                    <Label text="Pic1" />
+                    <t:template>
+                        <Text text="{project>Pic1}" />
+                    </t:template>
+                </t:Column>
+                <t:Column>
+                    <Label text="Pic2" />
+                    <t:template>
+                        <Text text="{project>Pic2}" />
+                    </t:template>
+                </t:Column>
+                <t:Column>
+                    <Label text="Pic3" />
+                    <t:template>
+                        <Text text="{project>Pic3}" />
                     </t:template>
                 </t:Column>
             </t:columns>

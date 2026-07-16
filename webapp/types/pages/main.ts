@@ -1,12 +1,16 @@
 export interface ProjectFormData {
-  Status?: string;
-  ProjType: string;
-  loaiCongTrinhKhac?: string;
+  BranchId: string;
 
   ConstructionContractor: string;
   AirConditioningContractor: string;
   ElecNetCamContractor: string;
   InteriorContractor: string;
+
+  BookId: string;
+  BranchName: string;
+
+  ProjType: string;
+  loaiCongTrinhKhac?: string;
 
   BankName: string;
   tenNganHangKhac?: string;
@@ -17,18 +21,28 @@ export interface ProjectFormData {
   UnitType: string;
   loaiHinhDonViKhac?: string;
 
-  BookId: string;
-  BranchId: string;
-  BranchName: string;
   Area: string;
   areaKhac?: string;
 
   Budget: number | null;
+
+  Waers: string;
+
   PlanStart: string;
   PlanType: string;
+
+  Step?: number;
+
   planTypeKhac?: string;
-  Waers: string;
-  Step?: string;
+  Status?: string;
+}
+
+export interface ErrorCustom {
+  error: {
+    message: {
+      value: string;
+    };
+  };
 }
 
 export interface ContractorData {
@@ -47,7 +61,7 @@ export interface FieldValueHelpItem {
 export interface DetailRouteArgs {
   workItemId?: string;
   branchId: string;
-
+  departmentId?: string;
 }
 
 export interface WorkflowHistoryItem {
@@ -89,8 +103,45 @@ export interface ProjectStepItem {
   Deadline: string;
   StepName?: string;
   StatusText?: string;
+  DeletedFlag?: string;
 }
 
 export interface StepListPayload {
   StepList: ProjectStepItem[];
+}
+
+export interface EmployeeItem {
+  Id: string;
+  Name: string;
+  Uname: string;
+  Mail: string;
+  Department: string;
+  CbqlId?: string;
+  LdId?: string;
+  ProjectCount: string;
+}
+
+export interface CommentItem {
+  CmtId: string;
+  CreateTime: string;
+  StepId: string;
+  BranchId: string;
+  Content: string;
+  CreateDate: string;
+  CreateBy: string;
+}
+
+export interface StepCommentItem {
+  Author: string;
+  Date: string;
+  Text: string;
+}
+
+export interface StepDocumentItem {
+  FileName: string;
+  Url: string;
+  Mimetype: string;
+  CreateBy: string;
+  CreateDate: string;
+  CreateTime: string;
 }

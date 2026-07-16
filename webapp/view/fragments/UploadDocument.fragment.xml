@@ -13,10 +13,11 @@
                 <u:UploadSet
                     id="UploadSetProj"
                     mode="None"
-                    afterItemAdded="onAfterItemAdded"
+                    beforeItemAdded="onBeforeItemAdded"
                     items="{PrjDocumentInit>/DocumentList}"
                     uploadEnabled="true"
-                    selectionChanged=".onDownLoadFile"
+                    beforeItemRemoved="onItemDeleteFileZ9"
+                    
                 >
                     <u:items>
                         <u:UploadSetItem
@@ -24,8 +25,10 @@
                             mediaType="{PrjDocumentInit>MimeType}"
                             removePressed="onItemDeleteFileZ9"
                             customData:FileId="{PrjDocumentInit>FileId}"
+                            openPressed="onOpenPressed"
                             visibleEdit="false"
-                            url="{PrjDocumentInit>Filename}"
+                            url="{PrjDocumentInit>Url}"
+                    
                         >
                             <u:attributes>
                                 <ObjectAttribute

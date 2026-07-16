@@ -16,11 +16,11 @@
         <content>
             <VBox class="sapUiMediumMargin">
                 <MessageStrip
-                    text="{path: 'projectStepDetail>Status', formatter: '.formatStepStatusText'}"
-                    type="{path: 'projectStepDetail>Status', formatter: '.formatStepStatusState'}"
+                    text="{path: 'projectStepDetail>StartStatus', formatter: '.formatStepStartStatusText'}"
+                    type="{path: 'projectStepDetail>StartStatus', formatter: '.formatStepStartStatusState'}"
                     showIcon="true"
-                    
-                    class="sapUiMediumMarginBottom" />
+                    class="sapUiMediumMarginBottom"
+                />
 
                 <IconTabBar>
                     <items>
@@ -34,13 +34,23 @@
                             >
                                 <f:content>
                                     <Label text="Tên bước" />
-                                    <Input
-                                        value="{path: 'projectStepDetail>StepId', formatter: '.formatStepName'}"
-                                        editable="false"
-                                    />
+                                    <Select
+                                        id="selStep"
+                                        selectedKey="{projectStepDetail>StepId}"
+                                        items="{stepPool>/availableSteps}"
+                                        change=".onStepSelected"
+                                        width="250px"
+                                    >
+                                        <core:Item
+                                            key="{stepPool>StepId}"
+                                            text="{stepPool>StepName}"
+                                        />
+                                    </Select>
 
                                     <Label text="Trạng thái" />
-                                    <Select selectedKey="{projectStepDetail>Status}">
+                                    <Select
+                                        selectedKey="{projectStepDetail>Status}"
+                                    >
                                         <core:Item
                                             key="0"
                                             text="Chưa triển khai"
@@ -56,10 +66,18 @@
                                     </Select>
 
                                     <Label text="Ngày bắt đầu" />
-                                    <DatePicker value="{projectStepDetail>PlanStart}" />
+                                    <DatePicker
+                                        value="{projectStepDetail>PlanStart}"
+                                        valueFormat="yyyy-MM-dd"
+                                        displayFormat="dd/MM/yyyy"
+                                    />
 
                                     <Label text="Deadline" />
-                                    <DatePicker value="{projectStepDetail>Deadline}" />
+                                    <DatePicker
+                                        valueFormat="yyyy-MM-dd"
+                                        displayFormat="dd/MM/yyyy"
+                                        value="{projectStepDetail>Deadline}"
+                                    />
                                 </f:content>
                             </f:SimpleForm>
                         </IconTabFilter>
@@ -69,14 +87,22 @@
                             icon="sap-icon://discussion"
                         >
                             <VBox>
-                                <Title text="Ghi chú" />
-                                <VBox>
-                                    <TextArea
-                                        value="{ProjectStep>Comments}"
-                                        placeholder="Nhập nội dung..."
-                                        width="100%"
+                                <FeedInput
+                                    post=".onPost"
+    
+                                    class="sapUiSmallMarginTopBottom"
+                                />
+                                <List
+                                    showSeparators="Inner"
+                                    items="{projectStepDetail>/comments}"
+                                >
+                                    <FeedListItem
+                                        sender="{projectStepDetail>Author}"
+                                        timestamp="{projectStepDetail>Date}"
+                                        text="{projectStepDetail>Text}"
+                                        convertLinksToAnchorTags="All"
                                     />
-                                </VBox>
+                                </List>
                             </VBox>
                         </IconTabFilter>
 
@@ -88,7 +114,7 @@
                                 <u:UploadSet
                                     id="UploadSetStepA"
                                     mode="None"
-                                    items="{projectStepDetail>/DAUBAI_LIST}"
+                                    items="{projectStepDetail>/stepDocuments}"
                                     beforeItemRemoved="onBeforeItemRemoved"
                                     beforeItemAdded="onBeforeItemAdded"
                                     uploadEnabled="true"

@@ -124,7 +124,7 @@
         },
         {
           "name": "RouteRoleAssignment",
-          "pattern": "role-assignment/{branchId}/{workItemId}",
+          "pattern": "role-assignment/{departmentId}/{branchId}/{workItemId}",
           "target": "TargetProject"
         },
         {

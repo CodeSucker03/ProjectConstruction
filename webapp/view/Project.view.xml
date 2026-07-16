@@ -15,8 +15,8 @@
     >
         <uxap:headerTitle>
             <uxap:ObjectPageHeader
-                objectTitle="{parts:[{path:'ProjectModel>/isCreateStage'}, {path:'projectInitForm>/BranchName'}], formatter:'.formatHeaderTitle'}"
-                objectSubtitle="{parts:[{path:'ProjectModel>/isCreateStage'}, {path:'projectInitForm>/BookId'}], formatter:'.formatHeaderSubtitle'}"
+                objectTitle="{parts:[{path:'ProjectStageModel>/isCreateStage'}, {path:'projectInitForm>/BranchName'}], formatter:'.formatHeaderTitle'}"
+                objectSubtitle="{parts:[{path:'ProjectStageModel>/isCreateStage'}, {path:'projectInitForm>/BookId'}], formatter:'.formatHeaderSubtitle'}"
                 objectImageShape="Circle"
                 isObjectTitleAlwaysVisible="true"
                 isObjectSubtitleAlwaysVisible="true"
@@ -27,7 +27,7 @@
         <uxap:headerContent>
             <ObjectStatus
                 id="status"
-                visible="{= !${ProjectModel>/isCreateStage}}"
+                visible="{= !${ProjectStageModel>/isCreateStage}}"
                 text="{parts:[{path:'projectInitForm>Status'}], formatter:'.getStatusText'}"
                 state="{parts:['projectInitForm>Status'], formatter:'.getState'}"
                 inverted="true"
@@ -36,7 +36,10 @@
         </uxap:headerContent>
 
         <uxap:sections>
-            <uxap:ObjectPageSection title="Công cụ hỗ trợ nhập liệu nhanh">
+            <uxap:ObjectPageSection
+                visible="{= ${ProjectStageModel>/Step} === 0 }"
+                title="Công cụ hỗ trợ nhập liệu nhanh"
+            >
                 <uxap:subSections>
                     <uxap:ObjectPageSubSection>
                         <uxap:blocks>
@@ -55,24 +58,9 @@
                                         <u:FileUploader
                                             id="ocrUploader"
                                             name="ocrFile"
-                                            uploadUrl="api/ocr"
-                                            fileType="png,jpg,jpeg,pdf"
-                                            change="onSimpleProxyOCRUpload"
+                                            change="UploadScanFile"
                                             placeholder="Chọn file ảnh/scan..."
                                             buttonText="Tải lên &amp; OCR"
-                                        />
-                                    </VBox>
-                                    <VBox>
-                                        <Label
-                                            text="Tải lên file dữ liệu cấu trúc (Excel, Word):"
-                                        />
-                                        <u:FileUploader
-                                            id="fileImportUploader"
-                                            name="importFile"
-                                            fileType="xlsx,xls,docx,doc"
-                                            change="onFileImportParse"
-                                            placeholder="Chọn file Excel/Word..."
-                                            buttonText="Đọc dữ liệu file"
                                         />
                                     </VBox>
                                 </HBox>
@@ -110,29 +98,17 @@
 
             <uxap:ObjectPageSection
                 id="Assignment"
-                title="Assignment"
-                visible="{= !${ProjectModel>/isCreateStage}}"
+                title="Cán bộ phân công"
+              visible="{= ${ProjectStageModel>/Step} >= 2 &amp;&amp; ${ProjectStageModel>/Step} !== 5 }"
             >
                 <uxap:subSections>
                     <uxap:ObjectPageSubSection
-                        id="subSecThietKe"
-                        title="Cán bộ chuyên môn Kiến trúc &amp; Khảo sát"
+                        id="subSecPhanCong"
+                        class="sapUiSmallMarginTop"
                     >
                         <uxap:blocks>
                             <core:Fragment
-                                fragmentName="sphinx.project.view.fragments.ThietKeGiamSat"
-                                type="XML"
-                            />
-                        </uxap:blocks>
-                    </uxap:ObjectPageSubSection>
-
-                    <uxap:ObjectPageSubSection
-                        id="subSecKyThuat"
-                        title="Cán bộ chuyên môn Cơ điện &amp; Pháp lý"
-                    >
-                        <uxap:blocks>
-                            <core:Fragment
-                                fragmentName="sphinx.project.view.fragments.HaTangNghiemThu"
+                                fragmentName="sphinx.project.view.fragments.PhanCongCanBo"
                                 type="XML"
                             />
                         </uxap:blocks>
@@ -142,7 +118,7 @@
 
             <uxap:ObjectPageSection
                 title="Thông tin Nhà thầu thực hiện"
-                visible="{= !${ProjectModel>/isCreateStage}}"
+                visible="{= ${ProjectStageModel>/Step} >= 5 }"
             >
                 <uxap:subSections>
                     <uxap:ObjectPageSubSection>
@@ -157,56 +133,8 @@
             </uxap:ObjectPageSection>
 
             <uxap:ObjectPageSection
-                title="Ý kiến xử lý &amp; Bình luận"
-                visible="{= !${ProjectModel>/isCreateStage}}"
-            >
-                <uxap:subSections>
-                    <uxap:ObjectPageSubSection>
-                        <uxap:blocks>
-                            <VBox
-                                width="100%"
-                                class="sapUiMediumMarginBottom"
-                            >
-                                <Panel
-                                    headerText="Ý kiến xử lý &amp; Bình luận (Comments)"
-                                    expandable="true"
-                                    expanded="true"
-                                >
-                                    <content>
-                                        <TextArea
-                                            id="taComment"
-                                            value="{formData>/commentText}"
-                                            placeholder="Nhập ý kiến đóng góp hoặc lý do từ chối/phê duyệt tại đây..."
-                                            width="100%"
-                                            rows="4"
-                                            growing="true"
-                                            growingMaxLines="6"
-                                            class="sapUiSmallMarginBottom"
-                                        />
-
-                                        <List
-                                            id="commentsHistoryList"
-                                            items="{workflowData>/history}"
-                                            headerText="Lịch sử ý kiến"
-                                        >
-                                            <FeedListItem
-                                                sender="{workflowData>approverName}"
-                                                text="{workflowData>comment}"
-                                                timestamp="{workflowData>timestamp}"
-                                                info="{workflowData>action}"
-                                            />
-                                        </List>
-                                    </content>
-                                </Panel>
-                            </VBox>
-                        </uxap:blocks>
-                    </uxap:ObjectPageSubSection>
-                </uxap:subSections>
-            </uxap:ObjectPageSection>
-
-            <uxap:ObjectPageSection
                 title="Lịch sử phê duyệt"
-                visible="{= !${ProjectModel>/isCreateStage}}"
+                visible="{= ${ProjectStageModel>/Step} >= 2 }"
             >
                 <uxap:subSections>
                     <uxap:ObjectPageSubSection>
@@ -222,7 +150,7 @@
 
             <uxap:ObjectPageSection
                 title="Các bước thực hiện"
-                visible="{= !${ProjectModel>/isCreateStage}}"
+                visible="{= !${ProjectStageModel>/isCreateStage}}"
             >
                 <uxap:subSections>
                     <uxap:ObjectPageSubSection>
@@ -244,8 +172,8 @@
                     type="Accept"
                     text="Gửi dự án"
                     icon="sap-icon://accept"
-                    visible="{= ${ProjectModel>/isCreateStage}}"
-                    enabled="{= ${ProjectModel>/Step} === '0' }"
+                    visible="{= ${ProjectStageModel>/isCreateStage}}"
+                    enabled="{= ${ProjectStageModel>/Step} === 0 }"
                     press="onSubmitProject"
                 />
 
@@ -253,16 +181,18 @@
                     type="Accept"
                     text="Hoàn thiện phân quyền"
                     icon="sap-icon://accept"
-                    visible="{= ${ProjectModel>/isRoleAssignStage}}"
-                    enabled="{= ${ProjectModel>/Step} === '2' }"
+                    visible="{= ${ProjectStageModel>/isRoleAssignStage}}"
+                    enabled="{= ${ProjectStageModel>/Step} === 2 
+                    || ${ProjectStageModel>/Step} === 3 
+                    || ${ProjectStageModel>/Step} === 4}"
                     press="onActionAssignSubmit"
                 />
                 <Button
                     type="Accept"
                     text="Hoàn thiện nhà thầu"
                     icon="sap-icon://accept"
-                    visible="{= ${ProjectModel>/isContractorStage}}"
-                    enabled="{= ${ProjectModel>/Step} === '3' }"
+                    visible="{= ${ProjectStageModel>/isContractorStage}}"
+                    enabled="{= ${ProjectStageModel>/Step} === 5 }"
                     press="onActionSendContractor"
                 />
                 <Button
@@ -270,8 +200,10 @@
                     text="Phê duyệt dự án"
                     icon="sap-icon://accept"
                     app:buttonData="Y"
-                    visible="{= ${ProjectModel>/isApproveStage}}"
-                    enabled="{= ${ProjectModel>/Step} === '4' || ${ProjectModel>/Step} === '5' || ${ProjectModel>/Step} === '1' }"
+                    visible="{= ${ProjectStageModel>/isApproveStage}}"
+                    enabled="{= ${ProjectStageModel>/Step} === 6 
+                    || ${ProjectStageModel>/Step} === 7 
+                    || ${ProjectStageModel>/Step} === 1 }"
                     press="onPressApprovalStage"
                 />
                 <Button
@@ -279,8 +211,10 @@
                     text="Từ chối dự án"
                     app:buttonData="N"
                     icon="sap-icon://decline"
-                    visible="{= ${ProjectModel>/isApproveStage} }"
-                    enabled="{= ${ProjectModel>/Step} === '4' || ${ProjectModel>/Step} === '5' || ${ProjectModel>/Step} === '1' }"
+                    visible="{= ${ProjectStageModel>/isApproveStage} }"
+                    enabled="{= ${ProjectStageModel>/Step} === 6 
+                    || ${ProjectStageModel>/Step} === 7 
+                    || ${ProjectStageModel>/Step} === 1 }"
                     press="onPressApprovalStage"
                 />
                 <Button
@@ -288,8 +222,10 @@
                     text="Yêu cầu sửa dự án"
                     app:buttonData="B"
                     icon="sap-icon://edit"
-                    visible="{= ${ProjectModel>/isApproveStage} }"
-                    enabled="{= ${ProjectModel>/Step} === '4' || ${ProjectModel>/Step} === '5' || ${ProjectModel>/Step} === '1'}"
+                    visible="{= ${ProjectStageModel>/isApproveStage} }"
+                    enabled="{= ${ProjectStageModel>/Step} === 6 
+                    || ${ProjectStageModel>/Step} === 7 
+                    || ${ProjectStageModel>/Step} === 1}"
                     press="onPressApprovalStage"
                 />
             </OverflowToolbar>

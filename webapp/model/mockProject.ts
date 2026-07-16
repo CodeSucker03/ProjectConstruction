@@ -25,29 +25,17 @@ export interface ProjectInitialData {
   planTypeKhac?: string;
   Waers: string;
   Status?: string;
-  Step?: string;
+  Step?: number;
 }
 
 export interface StateModel {
-  Step: string;
+  Step: number;
   isApproveStage: boolean;
   isCreateStage: boolean;
   isEditInitStage: boolean;
   isRoleAssignStage: boolean;
   isContractorStage: boolean;
   enableButton: boolean;
-}
-
-export interface StaffItem {
-  id: string;
-  name: string;
-  currentLoads: number;
-}
-
-export interface StaffPool {
-  tkdd: StaffItem[];
-  xdcb: StaffItem[];
-  qlcl: StaffItem[];
 }
 
 export interface AssignRoleItem {
@@ -93,33 +81,13 @@ export const mockProjectInitialData: ProjectInitialData = {
 };
 
 export const mockStateModel: StateModel = {
-  Step: "0",
+  Step: 0,
   isApproveStage: false,
   isCreateStage: false,
   isEditInitStage: false,
   isRoleAssignStage: false,
   isContractorStage: false,
   enableButton: false,
-};
-
-export const mockStaffPool: StaffPool = {
-  tkdd: [
-    { id: "", name: "-- Chọn cán bộ phòng TKDD --", currentLoads: 0 },
-    { id: "NV001", name: "Trần Văn Hùng", currentLoads: 2 },
-    { id: "NV002", name: "Lê Thị Thảo", currentLoads: 5 },
-    { id: "KHAC", name: "Khác (Nhập tay thông tin)", currentLoads: 0 },
-  ],
-  xdcb: [
-    { id: "", name: "-- Chọn cán bộ phòng XDCB --", currentLoads: 0 },
-    { id: "NV003", name: "Phạm Minh Hoàng", currentLoads: 1 },
-    { id: "NV004", name: "Nguyễn Hoàng Nam", currentLoads: 3 },
-    { id: "KHAC", name: "Khác (Nhập tay thông tin)", currentLoads: 0 },
-  ],
-  qlcl: [
-    { id: "", name: "-- Chọn cán bộ bộ phận QLCL --", currentLoads: 0 },
-    { id: "NV005", name: "Đặng Thúy Hà", currentLoads: 0 },
-    { id: "KHAC", name: "Khác (Nhập tay thông tin)", currentLoads: 0 },
-  ],
 };
 
 export const mockAssignData: AssignData = {

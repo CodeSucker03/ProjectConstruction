@@ -1,4 +1,3 @@
-
 import type ResourceBundle from "sap/base/i18n/ResourceBundle";
 import type Control from "sap/ui/core/Control";
 import UI5Element from "sap/ui/core/Element";
@@ -24,7 +23,10 @@ import type PropertyBinding from "sap/ui/model/PropertyBinding";
 import type SimpleType from "sap/ui/model/SimpleType";
 import Formatter from "../utils/Formatter";
 import type { Dict } from "../types/utils";
-import type { BindingContextInfoTarget, CompositeBindingInfo } from "../types/control";
+import type {
+  BindingContextInfoTarget,
+  CompositeBindingInfo,
+} from "../types/control";
 
 const formControlTypes = [
   "sap.m.Input",
@@ -44,6 +46,7 @@ type FormControlType = (typeof formControlTypes)[number];
 export default class Base extends Controller {
   public formatter = Formatter;
   public dataType = {};
+  private csrfToken: string | null;
 
   protected getRouter() {
     return UIComponent.getRouterFor(this);
@@ -138,11 +141,18 @@ export default class Base extends Controller {
     return control.getMetadata().getName();
   }
 
-  protected isControl<T extends Control>(control: unknown, name: string): control is T {
+  protected isControl<T extends Control>(
+    control: unknown,
+    name: string,
+  ): control is T {
     return this.getControlName(<Control>control) === name;
   }
 
-  protected displayTarget(options: { target: string; title?: string; description?: string }) {
+  protected displayTarget(options: {
+    target: string;
+    title?: string;
+    description?: string;
+  }) {
     const { target, title, description } = options;
 
     void this.getRouter().getTargets()?.display(target);
@@ -182,7 +192,9 @@ export default class Base extends Controller {
     }) as T[];
   }
 
-  protected getBindingContextInfo<C extends Control, T extends Dict = Dict>(source: C) {
+  protected getBindingContextInfo<C extends Control, T extends Dict = Dict>(
+    source: C,
+  ) {
     let bindingInfo = <CompositeBindingInfo>{
       parts: [],
     };
@@ -239,7 +251,8 @@ export default class Base extends Controller {
       binding,
       model,
       modelName,
-      label: <string>tooltipBinding?.getValue() || source.getTooltip_Text() || "",
+      label:
+        <string>tooltipBinding?.getValue() || source.getTooltip_Text() || "",
       control: source,
       get target() {
         const path = this.path;
@@ -252,16 +265,18 @@ export default class Base extends Controller {
     return value;
   }
 
-  protected callFunctionImport<T>(functionName : string, options : {params? : Dict; model?: string} = {}){
-    const {params, model} = options;
+  protected callFunctionImport<T>(
+    functionName: string,
+    options: { params?: Dict; model?: string } = {},
+  ) {
+    const { params, model } = options;
     const oDataModel = this.getModel<ODataModel>(model);
-    return new Promise<T>((resolve, reject)=> {
-      oDataModel.callFunction(functionName,{
+    return new Promise<T>((resolve, reject) => {
+      oDataModel.callFunction(functionName, {
         method: "GET",
         urlParameters: params,
         success: resolve,
-        error: reject
-
+        error: reject,
       });
     });
   }
@@ -303,4 +318,263 @@ export default class Base extends Controller {
         return "application/octet-stream";
     }
   };
+
+  protected _download(url: string): Promise<{ blob: Blob; fileName: string }> {
+    return new Promise((resolve, reject) => {
+      void $.ajax({
+        url,
+        method: "GET",
+        xhrFields: { responseType: "blob" },
+      })
+        .done((result, _textStatus, jqXHR) => {
+          const disposition = jqXHR.getResponseHeader("content-disposition");
+          const serverFileName =
+            disposition?.split("filename=")[1]?.replace(/[";]/g, "")?.trim() ||
+            "";
+
+          resolve({ blob: result, fileName: serverFileName });
+        })
+        .fail(reject);
+    });
+  }
+
+  protected downloadFile(
+    sPath: string,
+    fileName: string,
+    oBusy: Control | null = null,
+  ) {
+    this._download(sPath)
+      .then(({ blob, fileName: serverFileName }) => {
+        var url = window.URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+
+        if (fileName) {
+          link.setAttribute("download", fileName);
+        }
+
+        // ✅ ưu tiên fileName truyền vào, fallback về server filename
+        link.setAttribute("download", fileName || serverFileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      })
+      .catch((error: any) => {
+        console.log("Download error", error);
+      })
+      .finally(() => {
+        oBusy?.setBusy(false);
+      });
+  }
+
+  // protected downloadFile(
+  //   Path: string,
+  //   fileName: string | null = null,
+  //   Busy: Control | null = null,
+  // ) {
+  //   this.download(Path)
+  //     .then((blob: Blob) => {
+  //       let url = window.URL.createObjectURL(blob);
+  //       let link = document.createElement("a");
+  //       link.href = url;
+  //       link.style.display = "none";
+
+  //       if (fileName) {
+  //         link.setAttribute("download", fileName);
+  //       }
+
+  //       document.body.appendChild(link);
+  //       link.click();
+  //       document.body.removeChild(link);
+  //     })
+  //     .catch((error: any) => {
+  //       console.error(error);
+  //     })
+  //     .finally(() => {
+  //       Busy?.setBusy(false);
+  //     });
+  // }
+
+  protected async uploadFile(
+    sUploadUrl: string,
+    oFile: File,
+    branchId: string,
+    step: string,
+  ): Promise<any> {
+    await this.fetchCsrfToken();
+
+    return new Promise((resolve, reject) => {
+      if (!oFile) {
+        resolve({});
+        return;
+      }
+
+      const reader = new FileReader();
+      const fileName = oFile.name;
+      const contentType = this.getMineType(fileName);
+
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+
+        // const slug = `${magms}|${fileName}`;
+        const slug = `${branchId}|${step}|${fileName}`;
+
+        var oHeaders: Record<string, string> = {
+          "Content-Type": contentType,
+          "x-csrf-token": <string>this.csrfToken,
+          slug: encodeURIComponent(slug),
+        };
+        const blob = new Blob([arrayBuffer], { type: contentType });
+        void $.ajax({
+          url: `/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV${sUploadUrl}`,
+          method: "POST",
+          headers: oHeaders,
+          data: blob,
+          processData: false,
+          success: (data, textStatus, jqXHR) => {
+            const objectKey = jqXHR.getResponseHeader("object-key");
+            resolve(data);
+          },
+          error: (error: any) => {
+            reject(error);
+          },
+        });
+      };
+      reader.onerror = (error: any) => {
+        reject(error);
+      };
+      reader.readAsArrayBuffer(oFile);
+    });
+  }
+
+  private async fetchCsrfToken() {
+    const response = await fetch(
+      "/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV" + "/",
+      {
+        method: "GET",
+        headers: {
+          "x-csrf-token": "Fetch",
+        },
+        credentials: "include",
+      },
+    );
+    if (!response.ok) {
+      throw new Error("No token");
+    }
+    this.csrfToken = response.headers.get("x-csrf-token");
+    if (!this.csrfToken) {
+      throw new Error("CSRF token dont exist in response");
+    }
+  }
+
+  protected async uploadFileScanner(
+    sUploadUrl: string,
+    oFile: File,
+  ): Promise<any> {
+    await this.fetchCsrfToken();
+
+    return new Promise((resolve, reject) => {
+      if (!oFile) {
+        resolve({});
+        return;
+      }
+
+      const reader = new FileReader();
+      const fileName = oFile.name;
+      const contentType = this.getMineType(fileName);
+
+      reader.onload = (event: ProgressEvent<FileReader>) => {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+
+        const oHeaders: Record<string, string> = {
+          "Content-Type": contentType,
+          "x-csrf-token": <string>this.csrfToken,
+        };
+
+        const blob = new Blob([arrayBuffer], { type: contentType });
+
+        void $.ajax({
+          url: `/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV${sUploadUrl}`,
+          method: "POST",
+          headers: oHeaders,
+          data: blob,
+          processData: false,
+          success: (data: Document, textStatus, jqXHR) => {
+            const objectKey =
+              jqXHR.getResponseHeader("object-key") ??
+              this.parseODataEntityKey(data);
+
+            const properties = this.parseODataEntry(data);
+
+            resolve({ objectKey, ...properties });
+          },
+          error: (error: any) => {
+            reject(error);
+          },
+        });
+      };
+      reader.onerror = (error: any) => {
+        reject(error);
+      };
+      reader.readAsArrayBuffer(oFile);
+    });
+  }
+
+  /**
+   * Parses an OData Atom <entry> XML document into a plain object,
+   * e.g. { BranchId: "1", BranchName: "Chi nhánh Hà Nội", ... }
+   */
+  protected parseODataEntry(xmlDoc: Document): Record<string, string> {
+    const ns = {
+      m: `http://schemas.microsoft.com/ado/2007/08/dataservices/metadata`,
+      d: `http://schemas.microsoft.com/ado/2007/08/dataservices`,
+    };
+
+    const result: Record<string, string> = {};
+
+    const propertiesNode = xmlDoc.getElementsByTagNameNS(ns.m, "properties")[0];
+    if (propertiesNode) {
+      Array.from(propertiesNode.children).forEach((node) => {
+        // node.localName strips the "d:" prefix, e.g. "BranchId"
+        result[node.localName] = node.textContent ?? "";
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Extracts the entity key from the Atom <id> element, e.g. "1" from
+   * ".../ProjUploadSet('1')"
+   */
+  protected parseODataEntityKey(xmlDoc: Document): string | null {
+    const idNode = xmlDoc.getElementsByTagName("id")[0];
+    if (!idNode?.textContent) return null;
+
+    const match = idNode.textContent.match(/\('([^']+)'\)$/);
+    return match ? match[1] : null;
+  }
+
+  protected async download(url: string): Promise<Blob> {
+    return fetch(url, {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        // add Csrf token or auth header if needed
+        // x-csrf-token
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status : ${response.status}`);
+        }
+        return response.blob();
+      })
+      .then((blob) => {
+        return blob;
+      })
+      .catch((err) => {
+        throw err;
+      });
+  }
 }

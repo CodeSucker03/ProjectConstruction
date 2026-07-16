@@ -1,4 +1,5 @@
 export interface ProjectDocumentItem {
+  Url?: string;
   FileId: string;
   Filename: string;
   MimeType: string;

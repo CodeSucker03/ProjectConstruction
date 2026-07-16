@@ -15,31 +15,40 @@ import {
   mockProjectSteps,
   mockProjectInitialData,
   mockStateModel,
-  mockStaffPool,
   mockAssignData,
   mockWorkflowData,
   mockApprovalHistoryData,
   mockStepPool,
   mockProjectDocumentData,
+  type AssignData,
 } from "../model/mockProject";
 
 import type { Button$PressEvent } from "sap/m/Button";
 import type { Select$ChangeEvent } from "sap/m/Select";
 import MessageToast from "sap/m/MessageToast";
 import Filter from "sap/ui/model/Filter";
-import type Dialog from "sap/m/Dialog";
+import Dialog from "sap/m/Dialog";
 import type UploadSetItem from "sap/m/upload/UploadSetItem";
 import type {
   UploadSet$AfterItemAddedEvent,
+  UploadSet$BeforeItemAddedEvent,
   UploadSet$BeforeItemRemovedEvent,
 } from "sap/m/upload/UploadSet";
 import type {
   DetailRouteArgs,
+  CommentItem,
+  StepCommentItem,
+  StepDocumentItem,
+  EmployeeItem,
+  ErrorCustom,
   ProjectFormData,
   ProjectStepItem,
   WorkflowData,
 } from "../types/pages/main";
-import type { ProjectDocumentModel } from "../types/pages/project";
+import type {
+  ProjectDocumentItem,
+  ProjectDocumentModel,
+} from "../types/pages/project";
 import type {
   ODataError,
   ODataErrorResponse,
@@ -47,9 +56,18 @@ import type {
   ODataResponses,
 } from "../types/odata";
 import FilterOperator from "sap/ui/model/FilterOperator";
-import UI5Element from "sap/ui/core/Element";
-import { downloadFile } from "../utils/shared";
+
 import type UploadSet from "sap/m/upload/UploadSet";
+import type { UploadSetItem$OpenPressedEvent } from "sap/m/upload/UploadSetItem";
+import { DialogType } from "sap/m/library";
+import { ValueState } from "sap/ui/core/library";
+import VBox from "sap/m/VBox";
+import TextArea from "sap/m/TextArea";
+import type { InputBase$ChangeEvent } from "sap/m/InputBase";
+import Button from "sap/m/Button";
+import type { FileUploader$ChangeEvent } from "sap/ui/unified/FileUploader";
+import type DatePicker from "sap/m/DatePicker";
+import type { FeedInput$PostEvent } from "sap/m/FeedInput";
 
 /**
  * @namespace sphinx.project.controller
@@ -61,16 +79,15 @@ export default class Project extends Base {
   private stepTable: Table;
   private workItemId: string;
   private detailProjectStepDialog: Dialog;
-  private servicePath: string;
-  private csrfToken: string | null;
-  private step: string;
+  private step: number;
+  private isCreatingStep: boolean = false;
+  private departmentId: string | undefined;
+  private commentDialog: Dialog;
 
   public override onInit(): void {
     this.router = this.getRouter();
 
     this.stepTable = this.getControlById("tableSteps");
-
-    this.servicePath = "/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV";
 
     let oModel = new JSONModel(mockProjectInitialData);
     this.setModel(oModel, "projectInitForm");
@@ -80,18 +97,17 @@ export default class Project extends Base {
     // Status 3 = Send Contract Vendor step
     let stateModel = { ...mockStateModel };
 
-    this.setModel(new JSONModel(stateModel), "ProjectModel");
+    this.setModel(new JSONModel(stateModel), "ProjectStageModel");
 
     // NEW: Workflow state model to simulate user permissions and logs
     let workflowData = { ...mockWorkflowData } as WorkflowData;
 
-    // 2. Mock Pool dữ liệu nhân sự kèm Số lượng công trình đang xử lý (currentLoads)
-    let oStaffPool = { ...mockStaffPool };
+    // 2. Mock Pool dữ liệu nhân sự kèm Số lượng công trình đang xử lý (ProjectCount)
+    // Replaced with OData call in loadAllDeptStaff()
 
     // 3. Khởi tạo cấu trúc lưu trữ dữ liệu Phân công đầu ra
     let oAssignData = { ...mockAssignData };
 
-    this.setModel(new JSONModel(oStaffPool), "staffPool");
     this.setModel(new JSONModel(oAssignData), "assignData");
 
     this.setModel(new JSONModel(workflowData), "workflowData");
@@ -115,10 +131,16 @@ export default class Project extends Base {
     } as ProjectDocumentModel;
     this.setModel(new JSONModel(projectDocumentModel), "PrjDocumentInit");
 
-    //Default Route
+    let oStaffPool = {
+      tkdd: [],
+      xdcb: [],
+      qlcl: [],
+    };
+    this.setModel(new JSONModel(oStaffPool), "staffPool");
+
     this.router
       .getRoute("RouteProject")
-      ?.attachPatternMatched(this.onProductMatched);
+      ?.attachPatternMatched(this.onDetailMatched);
 
     //Default Route End
     this.router
@@ -143,10 +165,56 @@ export default class Project extends Base {
 
   //#region Route
   // Create Route doesnt Fetch
+  public override onExit(): void | undefined {
+    const projectInitForm = this.getModel("projectInitForm");
+    if (projectInitForm) {
+      projectInitForm.setProperty("/", { ...mockProjectInitialData });
+    }
+
+    const projectModel = this.getModel("ProjectStageModel");
+    if (projectModel) {
+      projectModel.setProperty("/", { ...mockStateModel });
+    }
+
+    const assignData = this.getModel("assignData");
+    if (assignData) {
+      assignData.setProperty("/", { ...mockAssignData });
+    }
+
+    const workflowData = this.getModel("workflowData");
+    if (workflowData) {
+      workflowData.setProperty("/", { ...mockWorkflowData });
+    }
+
+    const stepTableModel = this.getModel("stepTableModel");
+    if (stepTableModel) {
+      stepTableModel.setProperty("/selectedIndices", []);
+    }
+
+    const approvalHistory = this.getModel("approvalHistory");
+    if (approvalHistory) {
+      approvalHistory.setProperty("/", { ...mockApprovalHistoryData });
+    }
+
+    const project = this.getModel("project");
+    if (project) {
+      project.setProperty("/StepList", []);
+    }
+
+    const prjDocumentInit = this.getModel("PrjDocumentInit");
+    if (prjDocumentInit) {
+      prjDocumentInit.setProperty("/", { ...mockProjectDocumentData });
+    }
+
+    const staffPool = this.getModel("staffPool");
+    if (staffPool) {
+      staffPool.setProperty("/", { tkdd: [], xdcb: [], qlcl: [] });
+    }
+  }
   private onCreateMatched = (onCreateMatched: Route$PatternMatchedEvent) => {
-    let stateModel = this.getModel("ProjectModel");
+    let stateModel = this.getModel("ProjectStageModel");
     if (stateModel) {
-      stateModel.setProperty("/Step", "0");
+      stateModel.setProperty("/Step", 0);
       stateModel.setProperty("/isCreateStage", true);
     }
   };
@@ -156,7 +224,7 @@ export default class Project extends Base {
   ) => {
     this.loadMetaData(onApprovalMatched);
 
-    let stateModel = this.getModel("ProjectModel");
+    let stateModel = this.getModel("ProjectStageModel");
     if (stateModel) {
       stateModel.setProperty("/isApproveStage", true);
       stateModel.setProperty("/isCreateStage", false);
@@ -166,7 +234,7 @@ export default class Project extends Base {
   private onContractorMatched = (onMatched: Route$PatternMatchedEvent) => {
     this.loadMetaData(onMatched);
 
-    let stateModel = this.getModel("ProjectModel");
+    let stateModel = this.getModel("ProjectStageModel");
     if (stateModel) {
       stateModel.setProperty("/isContractorStage", true);
     }
@@ -175,26 +243,35 @@ export default class Project extends Base {
   private onRoleAssignMatched = (
     onRoleAssignMatched: Route$PatternMatchedEvent,
   ) => {
-    this.loadMetaData(onRoleAssignMatched);
+    const args = <DetailRouteArgs>onRoleAssignMatched.getParameter("arguments");
+    const sBranchId = args?.branchId;
+    this.departmentId = args?.departmentId;
 
-    let stateModel = this.getModel("ProjectModel");
-    if (stateModel) {
-      stateModel.setProperty("/isRoleAssignStage", true);
-    }
+    this.loadProject(sBranchId)
+      .then(() => {
+        this.loadDept(this.departmentId || "");
+
+        let stateModel = this.getModel("ProjectStageModel");
+        if (stateModel) {
+          stateModel.setProperty("/isRoleAssignStage", true);
+        }
+      })
+      .catch((err) => {
+        MessageBox.error(err.message || "Failed to load role assignment data");
+      });
   };
-
   private onEditInitMatched = (Event: Route$PatternMatchedEvent) => {
     this.loadMetaData(Event);
 
-    let stateModel = this.getModel("ProjectModel");
+    let stateModel = this.getModel("ProjectStageModel");
     if (stateModel) {
-      stateModel.setProperty("/Step", "0");
+      stateModel.setProperty("/Step", 0);
       stateModel.setProperty("/isEditInitStage", true);
     }
   };
 
-  private onProductMatched = (Event: Route$PatternMatchedEvent) => {
-    let stateModel = this.getModel("ProjectModel");
+  private onDetailMatched = (Event: Route$PatternMatchedEvent) => {
+    let stateModel = this.getModel("ProjectStageModel");
     if (stateModel) {
       stateModel.setProperty("/isCreateStage", false);
     }
@@ -224,11 +301,18 @@ export default class Project extends Base {
       })
       .then(() => {
         this.getListFileProjInit();
-        this.loadProjectSteps(this.branchId);
+        if (this.step > 1) {
+          this.loadProjectSteps(this.branchId);
+        }
+        if (this.step > 5) {
+          this.loadAllDeptStaff();
+        }
+        if (this.step > 5) {
+          this.loadAssignments();
+        }
       })
       .catch((error) => {
         MessageBox.error(error);
-        console.log(error);
       })
       .finally(() => {
         // loading off
@@ -287,8 +371,6 @@ export default class Project extends Base {
     oDataModel.setUseBatch(false);
     oDataModel.create("/ProjectSet", payload, {
       success: (response: ODataResponse) => {
-        console.log(response);
-
         // Navigate
         // this.router.navTo("RouteProject", {
         //   branchId: payload.BranchId,
@@ -304,10 +386,10 @@ export default class Project extends Base {
             success: () => {
               MessageBox.success("Hồ sơ dự án đã được khởi tạo thành công!");
             },
-            error: (error: any) => {
-              console.log(error);
-
-              const oResponse = JSON.parse(error.responseText);
+            error: (error: ODataError) => {
+              const oResponse = JSON.parse(
+                error.responseText || "",
+              ) as ErrorCustom;
               const message = oResponse.error.message.value || "Request Failed";
 
               MessageBox.error(message);
@@ -318,11 +400,26 @@ export default class Project extends Base {
         this.getView()?.setBusy(false);
       },
       error: (error: ODataError) => {
-        this.getView()?.setBusy(false);
+        const oResponse = JSON.parse(error.responseText || "") as ErrorCustom;
+        const message = oResponse.error.message.value || "Request Failed";
 
-        MessageBox.error(error as string);
+        MessageBox.error(message);
+
+        this.getView()?.setBusy(false);
       },
     });
+  }
+
+  public onChangeValue(event: InputBase$ChangeEvent) {
+    const input = this.getControlById<TextArea>("inputPheDuyet");
+    const value = event.getSource().getValue();
+
+    if (!value) {
+      input.setValueState("Error");
+      input.setValueStateText("Yêu cầu nhập ý kiến");
+    } else {
+      input.setValueState("None");
+    }
   }
 
   // Step 1 Approve / Reject / Back author
@@ -333,169 +430,212 @@ export default class Project extends Base {
 
     const oDataModel = this.getModel<ODataModel>();
 
-    MessageBox.confirm("Xác nhận", {
-      actions: ["Xác nhận", "Huỷ"],
-      emphasizedAction: "Xác nhận",
-      onClose: (action: string) => {
-        if (action === "Xác nhận") {
-          oDataModel.create(
-            "/ProcessExecuteSet",
-            {
-              WiId: this.workItemId,
-              Action: actionData,
-              BranchId: this.branchId,
+    if (actionData === "B" || actionData === "N") {
+      if (!this.commentDialog) {
+        this.commentDialog = new Dialog({
+          contentWidth: "600px",
+          contentHeight: "200px",
+          type: DialogType.Message,
+          state: ValueState.Information,
+          title: "Ý kiến",
+          content: new VBox({
+            items: [
+              new TextArea({
+                id: this.createId("inputPheDuyet"),
+                placeholder: "Nhập ý kiến",
+                liveChange: this.onChangeValue.bind(this),
+                width: "100%",
+                height: "150px",
+              }),
+            ],
+          }),
+          beginButton: new Button({
+            text: "Gửi",
+            type: "Emphasized",
+            press: () => {
+              const input = this.getControlById<TextArea>("inputPheDuyet");
+              const comment = input.getValue();
+              if (
+                comment === "" &&
+                (actionData === "N" || actionData === "B")
+              ) {
+                input.setValueState("Error");
+                input.setValueStateText("this field is required!");
+                return;
+              }
+              oDataModel.create(
+                "/ProcessExecuteSet",
+                {
+                  WiId: this.workItemId,
+                  Action: actionData,
+                  BranchId: this.branchId,
+                  Comment: comment,
+                },
+                {
+                  success: async () => {
+                    MessageBox.success("Thành công");
+                    await this.loadProject(this.branchId);
+                    this.getView()?.setBusy(false);
+                    button.setEnabled(false);
+                  },
+                  error: (error: ODataError) => {
+                    const oResponse = JSON.parse(
+                      error.responseText || "",
+                    ) as ErrorCustom;
+                    const message =
+                      oResponse.error.message.value || "Request Failed";
+
+                    MessageBox.error(message);
+                    this.getView()?.setBusy(false);
+                  },
+                },
+              );
+
+              this.commentDialog.close();
             },
-            {
-              success: () => {
-                MessageBox.success("");
-                this.getView()?.setBusy(false);
-                button.setEnabled(false);
-              },
-              error: (error: ODataErrorResponse) => {
-                this.getView()?.setBusy(false);
-                console.log(error);
-              },
+          }),
+
+          endButton: new Button({
+            text: "Huỷ",
+            type: "Default",
+            press: () => {
+              const input = this.getControlById<TextArea>("inputPheDuyet");
+              this.commentDialog.close();
+              input.setValue("");
+              input.setValueState("None");
             },
-          );
-        }
-      },
-    });
-  }
-
-  // Step 2: Assign Users Submit
-  public onActionAssignSubmit() {
-    this.getView()?.setBusy(true);
-
-    try {
-      const assignData = this.getModel("assignData")?.getData();
-      const oDataModel = this.getModel<ODataModel>();
-
-      oDataModel.setUseBatch(false);
-
-      let payload = {
-        dienMang:
-          assignData.dienMang.selectedKey === "KHAC"
-            ? {
-                id: assignData.dienMang.manualId,
-                name: assignData.dienMang.manualName,
-                email: assignData.dienMang.manualEmail,
-              }
-            : {
-                id: assignData.dienMang.selectedKey,
-              },
-
-        duToan:
-          assignData.duToan.selectedKey === "KHAC"
-            ? {
-                id: assignData.duToan.manualId,
-                name: assignData.duToan.manualName,
-                email: assignData.duToan.manualEmail,
-              }
-            : {
-                id: assignData.duToan.selectedKey,
-              },
-
-        quyetToan:
-          assignData.quyetToan.selectedKey === "KHAC"
-            ? {
-                id: assignData.quyetToan.manualId,
-                name: assignData.quyetToan.manualName,
-                email: assignData.quyetToan.manualEmail,
-              }
-            : {
-                id: assignData.quyetToan.selectedKey,
-              },
-
-        nhnn:
-          assignData.nhnn.selectedKey === "KHAC"
-            ? {
-                id: assignData.nhnn.manualId,
-                name: assignData.nhnn.manualName,
-                email: assignData.nhnn.manualEmail,
-              }
-            : {
-                id: assignData.nhnn.selectedKey,
-              },
-
-        tkdd:
-          assignData.tkdd.selectedKey === "KHAC"
-            ? {
-                id: assignData.tkdd.manualId,
-                name: assignData.tkdd.manualName,
-                email: assignData.tkdd.manualEmail,
-              }
-            : {
-                id: assignData.tkdd.selectedKey,
-              },
-
-        giamsat:
-          assignData.giamsat.selectedKey === "KHAC"
-            ? {
-                id: assignData.giamsat.manualId,
-                name: assignData.giamsat.manualName,
-                email: assignData.giamsat.manualEmail,
-              }
-            : {
-                id: assignData.giamsat.selectedKey,
-              },
-
-        kienTruc:
-          assignData.kienTruc.selectedKey === "KHAC"
-            ? {
-                id: assignData.kienTruc.manualId,
-                name: assignData.kienTruc.manualName,
-                email: assignData.kienTruc.manualEmail,
-              }
-            : {
-                id: assignData.kienTruc.selectedKey,
-              },
-      };
-
-      // API ASSIGNMENT
-      // await new Promise<void>((resolve, reject) => {
-      //   oDataModel.create("/AssignSet", payload, {
-      //     success: () => resolve(),
-      //     error: reject,
-      //   });
-      // });
-
-      // Temporary workflow
-      let workFlow = { BranchId: this.branchId };
-
-      MessageBox.confirm("Xác nhận", {
+          }),
+        });
+      }
+      this.getView()?.setBusy(false);
+      this.commentDialog.open();
+    } else {
+      MessageBox.confirm("Xác nhận Phê duyệt", {
         actions: ["Xác nhận", "Huỷ"],
         emphasizedAction: "Xác nhận",
         onClose: (action: string) => {
           if (action === "Xác nhận") {
             oDataModel.create(
-              "/StartProcessSet",
+              "/ProcessExecuteSet",
               {
                 WiId: this.workItemId,
-                Action: "Y",
+                Action: actionData,
                 BranchId: this.branchId,
               },
               {
-                success: (response: ODataResponse) => {
-                  console.log(response);
-
+                success: () => {
+                  MessageBox.success("Phê duyệt thành công");
                   this.getView()?.setBusy(false);
-                  MessageBox.success("Đã phân công thành công!");
+                  button.setEnabled(false);
                 },
-                error: (error: ODataError) => {
+                error: (error: ODataErrorResponse) => {
                   this.getView()?.setBusy(false);
-
-                  MessageBox.error(error as string);
+                  console.log(error);
                 },
               },
             );
           }
         },
       });
-    } catch (e) {
-      MessageBox.error((e as Error).message);
-    } finally {
       this.getView()?.setBusy(false);
     }
+  }
+
+  // Step 2: Assign Users Submit
+  public onActionAssignSubmit() {
+    this.getView()?.setBusy(true);
+
+    const assignData = this.getModel("assignData")?.getData() as AssignData;
+    const oDataModel = this.getModel<ODataModel>();
+
+    oDataModel.setUseBatch(false);
+
+    const roleMap = [
+      { key: "tkdd", assignId: "1" },
+      { key: "giamsat", assignId: "2" },
+      { key: "kienTruc", assignId: "3" },
+      { key: "dienMang", assignId: "4" },
+      { key: "duToan", assignId: "5" },
+      { key: "quyetToan", assignId: "6" },
+      { key: "nhnn", assignId: "7" },
+    ];
+
+    console.log(assignData);
+
+    const assignList = roleMap
+      .map((role) => {
+        const roleData = (assignData as any)?.[role.key];
+        if (!roleData || !roleData.selectedKey) {
+          return null;
+        }
+
+        const uname =
+          roleData.selectedKey === "KHAC"
+            ? roleData.manualId
+            : roleData.selectedKey;
+
+        if (!uname) {
+          return null;
+        }
+
+        return {
+          BranchId: this.branchId,
+          StepId: this.step.toString() || "",
+          Uname: uname,
+          AssignId: role.assignId,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+
+    const payload = {
+      BranchId: this.branchId,
+      AssignList: assignList,
+    };
+
+    console.log("Assign payload:", payload);
+
+    oDataModel.create("/AssignHeaderSet", payload, {
+      success: () => {
+        MessageBox.confirm("Xác nhận", {
+          actions: ["Xác nhận", "Huỷ"],
+          emphasizedAction: "Xác nhận",
+          onClose: (action: string) => {
+            if (action === "Xác nhận") {
+              oDataModel.create(
+                "/ProcessExecuteSet",
+                {
+                  WiId: this.workItemId,
+                  Action: "Y",
+                  BranchId: this.branchId,
+                },
+                {
+                  success: (response: ODataResponse) => {
+                    console.log(response);
+                    this.getView()?.setBusy(false);
+                    MessageBox.success("Đã phân công thành công!");
+                  },
+                  error: (error: ODataError) => {
+                    const oResponse = JSON.parse(
+                      error.responseText || "",
+                    ) as ErrorCustom;
+                    const message =
+                      oResponse.error?.message?.value || "Request Failed";
+                    MessageBox.error(message);
+                    this.getView()?.setBusy(false);
+                  },
+                },
+              );
+            }
+          },
+        });
+      },
+      error: (error: ODataError) => {
+        const oResponse = JSON.parse(error.responseText || "{}") as ErrorCustom;
+        const message = oResponse.error?.message?.value || "Request Failed";
+        MessageBox.error(message);
+        this.getView()?.setBusy(false);
+      },
+    });
   }
 
   // Step 3: Send Contract
@@ -508,15 +648,18 @@ export default class Project extends Base {
       MessageBox.error("Không có thông tin dự án!");
       return;
     }
-
-    // const payload = {
-    //   BranchId: this.branchId || data.BranchId,
-    //   ConstructionContractor: data.ConstructionContractor || "",
-    //   AirConditioningContractor: data.AirConditioningContractor || "",
-    //   ElecNetCamContractor: data.ElecNetCamContractor || "",
-    //   InteriorContractor: data.InteriorContractor || "",
-    // };
-    const payload = data;
+    // Destructure data
+    const {
+      areaKhac,
+      regionKhac,
+      planTypeKhac,
+      tenNganHangKhac,
+      loaiCongTrinhKhac,
+      loaiHinhDonViKhac,
+      Status,
+      Step,
+      ...payload
+    } = data;
 
     const oDataModel = this.getModel<ODataModel>();
     oDataModel.setUseBatch(false);
@@ -530,16 +673,16 @@ export default class Project extends Base {
               console.log(response);
 
               oDataModel.create(
-                "/StartProcessSet",
+                "/ProcessExecuteSet",
                 {
                   WiId: this.workItemId,
                   Action: "Y",
                   BranchId: this.branchId,
                 },
                 {
-                  success: (response: ODataResponse) => {
+                  success: async (response: ODataResponse) => {
                     console.log(response);
-
+                    await this.loadProject(this.branchId);
                     this.getView()?.setBusy(false);
                     MessageBox.success("Đã gửi thông tin nhà thầu thành công!");
                   },
@@ -580,104 +723,23 @@ export default class Project extends Base {
       oDataModel.setUseBatch(false);
       oDataModel.read(`/ProjectSet('${BranchId}')`, {
         success: (response: ODataResponse<ProjectFormData>) => {
-          const updates: Record<string, string> = {};
-
-          const allowedRegion = ["", "1", "2", "KHAC"];
-          if (response.Region && !allowedRegion.includes(response.Region)) {
-            updates.Region = "KHAC";
-            updates.regionKhac = response.Region;
-          } else {
-            updates.regionKhac = "";
-          }
-
-          const allowedArea = [
-            "",
-            "1",
-            "1B",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "6B",
-            "7",
-            "8",
-            "8B",
-            "9",
-            "10",
-            "11",
-            "KHAC",
-          ];
-          if (response.Area && !allowedArea.includes(response.Area)) {
-            updates.Area = "KHAC";
-            updates.areaKhac = response.Area;
-          } else {
-            updates.areaKhac = "";
-          }
-
-          const allowedPlanType = ["", "1", "2", "KHAC"];
-          if (
-            response.PlanType &&
-            !allowedPlanType.includes(response.PlanType)
-          ) {
-            updates.PlanType = "KHAC";
-            updates.planTypeKhac = response.PlanType;
-          } else {
-            updates.planTypeKhac = "";
-          }
-
-          const allowedProjType = [
-            "",
-            "DI_DOI",
-            "MO_MOI",
-            "THUE_THEM",
-            "CAI_TAO",
-            "KHAC",
-          ];
-          if (
-            response.ProjType &&
-            !allowedProjType.includes(response.ProjType)
-          ) {
-            updates.ProjType = "KHAC";
-            updates.loaiCongTrinhKhac = response.ProjType;
-          } else {
-            updates.loaiCongTrinhKhac = "";
-          }
-
-          const allowedUnitType = ["", "CN", "PGD", "HO", "KHAC"];
-          if (
-            response.UnitType &&
-            !allowedUnitType.includes(response.UnitType)
-          ) {
-            updates.UnitType = "KHAC";
-            updates.loaiHinhDonViKhac = response.UnitType;
-          } else {
-            updates.loaiHinhDonViKhac = "";
-          }
-
-          const allowedBankName = ["", "VPBANK", "GPBANK", "KHAC"];
-          if (
-            response.BankName &&
-            !allowedBankName.includes(response.BankName)
-          ) {
-            updates.BankName = "KHAC";
-            updates.tenNganHangKhac = response.BankName;
-          } else {
-            updates.tenNganHangKhac = "";
-          }
+          const updates = this.matchProjectResponseToDisplay(response);
+          const { objectkey, mimetype, ...responseClean } = response as any;
 
           projectInitModel?.setProperty("/", {
-            ...response,
+            ...responseClean,
             ...updates,
           });
           this.branchId = response.BranchId;
 
-          this.getModel("ProjectModel")?.setProperty(
+          this.getModel("ProjectStageModel")?.setProperty(
             "/Step",
-            response.Step || "0",
+            parseInt(response.Step?.toString() || "0", 10) || 0,
           );
 
-          this.step = response.Step || "0";
+          console.log(this.getModel("ProjectStageModel").getData());
+
+          this.step = response.Step || 0;
           resolve(true);
         },
         error: (error: ODataError) => {
@@ -713,6 +775,113 @@ export default class Project extends Base {
       },
       error: (error: ODataError) => {
         MessageBox.error(error.message || "Failed to load contractors");
+      },
+    });
+  }
+
+  private loadDept(deptId: string) {
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+
+    oDataModel.read("/EmployeesSet", {
+      filters: [new Filter("Department", "EQ", deptId)],
+      success: (response: ODataResponses<EmployeeItem[]>) => {
+        const employees = Array.isArray(response) ? response : response.results;
+
+        this.saveAssignData(employees, deptId);
+      },
+      error: (error: ODataError) => {
+        MessageBox.error(error.message || "Failed to load employees");
+      },
+    });
+  }
+
+  private saveAssignData(payload: EmployeeItem[], deptId: string) {
+    const khacItem: EmployeeItem = {
+      Id: "KHAC",
+      Name: "Khác (Nhập tay thông tin)",
+      Uname: "KHAC",
+      Mail: "",
+      Department: deptId,
+      CbqlId: "",
+      LdId: "",
+      ProjectCount: "0",
+    };
+
+    let staffPoolData: {
+      tkdd?: EmployeeItem[];
+      xdcb?: EmployeeItem[];
+      qlcl?: EmployeeItem[];
+    } = {};
+    switch (deptId) {
+      case "1":
+        staffPoolData = {
+          tkdd: [khacItem, ...payload],
+        };
+        break;
+      case "2":
+        staffPoolData = {
+          xdcb: [khacItem, ...payload],
+        };
+        break;
+      case "3":
+        staffPoolData = {
+          qlcl: [khacItem, ...payload],
+        };
+        break;
+      default:
+        break;
+    }
+
+    this.getModel("staffPool")?.setProperty("/", staffPoolData);
+    console.log(this.getModel("staffPool")?.getProperty("/"));
+  }
+
+  public loadAllDeptStaff() {
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+
+    this.loadDept("1");
+
+    this.loadDept("2");
+
+    this.loadDept("3");
+  }
+
+  public loadAssignments() {
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+
+    oDataModel.read("/EmpAssignSet", {
+      filters: [new Filter("BranchId", FilterOperator.EQ, this.branchId)],
+      success: (response: ODataResponses<any[]>) => {
+        const assignments = Array.isArray(response)
+          ? response
+          : response.results;
+        const assignData = this.getModel("assignData")?.getData();
+        if (!assignData) return;
+
+        const assignIdToRole: Record<string, keyof typeof assignData> = {
+          "1": "tkdd",
+          "2": "giamsat",
+          "3": "kienTruc",
+          "4": "dienMang",
+          "5": "duToan",
+          "6": "quyetToan",
+          "7": "nhnn",
+        };
+
+        assignments.forEach((item: any) => {
+          const roleKey = assignIdToRole[item.AssignId];
+          if (roleKey && item.Uname) {
+            assignData[roleKey].selectedKey = item.Uname;
+          }
+        });
+
+        this.getModel("assignData")?.setProperty("/", { ...assignData });
+      },
+      error: (error: ODataError) => {
+        console.log("Failed to load assignments", error);
       },
     });
   }
@@ -763,19 +932,43 @@ export default class Project extends Base {
     const newStep: ProjectStepItem = {
       StepId: selectedStep.StepId,
       BranchId: this.branchId || "",
-      Status: "0",
+      Status: "1",
       PlanStart: "",
-      StartStatus: "0",
+      StartStatus: "1",
       Deadline: "",
       StepName: selectedStep.StepName,
-      StatusText: "Chưa bắt đầu",
     };
 
     projectModel?.setProperty("/StepList", [...currentList, newStep]);
     select.setSelectedKey("");
   }
 
+  public onStepSelected(oEvent: Select$ChangeEvent) {
+    const select = oEvent.getSource();
+    const selectedKey = select.getSelectedKey();
+
+    if (!selectedKey) {
+      return;
+    }
+
+    const stepPoolModel = this.getModel("stepPool");
+    const poolData = stepPoolModel?.getData() as
+      { availableSteps?: { StepId: string; StepName: string }[] } | undefined;
+
+    const selectedStep = poolData?.availableSteps?.find(
+      (step) => step.StepId === selectedKey,
+    );
+
+    console.log(selectedStep, selectedStep?.StepName);
+    if (selectedStep) {
+      const dialog = select.getParent() as Dialog;
+      const model = dialog.getModel("projectStepDetail") as JSONModel;
+      model.setProperty("/StepName", selectedStep.StepName);
+    }
+  }
+
   public onDeleteStep() {
+    this.getView()?.setBusy(true);
     const projectModel = this.getModel("project");
     const data = projectModel?.getData() as
       { StepList?: ProjectStepItem[] } | undefined;
@@ -784,6 +977,7 @@ export default class Project extends Base {
     const indices = this.stepTable.getSelectedIndices();
     if (!indices.length) {
       MessageBox.warning("Vui lòng chọn bước cần xóa.");
+      this.getView()?.setBusy(false);
       return;
     }
 
@@ -792,6 +986,7 @@ export default class Project extends Base {
     );
     if (!item) {
       MessageBox.error("Không xác định được bước được chọn.");
+      this.getView()?.setBusy(false);
       return;
     }
 
@@ -802,16 +997,68 @@ export default class Project extends Base {
         emphasizedAction: MessageBox.Action.DELETE,
         onClose: (action: unknown) => {
           if (action === MessageBox.Action.DELETE) {
-            const updatedList = currentList.filter(
-              (step) => step.StepId !== item.StepId,
+            const updatedList = currentList.map((step) =>
+              step.StepId === item.StepId
+                ? { ...step, DeletedFlag: "X" }
+                : step,
             );
-            projectModel?.setProperty("/StepList", updatedList);
-            this.stepTable.clearSelection();
-            MessageToast.show("Xóa bước thành công.");
+
+            const payload = this.sanitizeStepPayload(updatedList, true);
+
+            const oDataModel = this.getModel<ODataModel>();
+            oDataModel.setUseBatch(false);
+
+            oDataModel.create("/ProjectHeaderSet", payload, {
+              success: () => {
+                projectModel?.setProperty("/StepList", updatedList);
+                this.stepTable.clearSelection();
+                this.getView()?.setBusy(false);
+                MessageBox.success("Xóa bước thành công.");
+                this.loadProjectSteps(this.branchId);
+              },
+              error: (error: ODataError) => {
+                const oResponse = JSON.parse(
+                  error.responseText || "",
+                ) as ErrorCustom;
+                const message =
+                  oResponse.error.message.value || "Request Failed";
+
+                MessageBox.error(message);
+
+                this.getView()?.setBusy(false);
+              },
+            });
           }
         },
       },
     );
+  }
+
+  private sanitizeStepPayload(
+    stepList: ProjectStepItem[],
+    isDelete = false,
+  ): { BranchId: string; StepList: ProjectStepItem[] } {
+    const sanitized = stepList.map((step) => {
+      const base: any = {
+        BranchId: step.BranchId,
+        StepId: step.StepId,
+        Status: step.Status,
+        PlanStart: step.PlanStart,
+        StartStatus: step.StartStatus,
+        Deadline: step.Deadline,
+      };
+
+      if (isDelete && step.DeletedFlag === "X") {
+        base.DeletedFlag = "X";
+      }
+
+      return base;
+    });
+
+    return {
+      BranchId: this.branchId,
+      StepList: sanitized,
+    };
   }
 
   public onPressStep(oEvent: any) {
@@ -836,43 +1083,116 @@ export default class Project extends Base {
       return;
     }
 
-    const selectedIndices = this.stepTable.getSelectedIndices();
-    if (!selectedIndices.length) {
-      MessageBox.warning("Vui lòng chọn bước cần lưu.");
+    if (!formData.StepId) {
+      MessageBox.error("Vui lòng chọn bước.");
       return;
     }
 
-    const selectedItem = <ProjectStepItem>(
-      this.stepTable.getContextByIndex(selectedIndices[0])?.getObject()
-    );
-
-    if (!selectedItem) {
-      MessageBox.error("Không thể xác định bước đang chọn.");
-      return;
-    }
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
 
     const projectModel = this.getModel("project");
     const projectData = projectModel?.getData() as
       { StepList?: ProjectStepItem[]; BranchId?: string } | undefined;
     const currentList = projectData?.StepList || [];
 
-    const updatedList = currentList.map((step) =>
-      step.StepId === formData.StepId ? { ...step, ...formData } : step,
-    );
+    let updatedList: ProjectStepItem[];
 
-    const payload = {
-      BranchId: projectData?.BranchId || this.branchId || "",
-      StepList: updatedList,
-    };
+    if (this.isCreatingStep) {
+      const exists = currentList.some(
+        (step) => step.StepId === formData.StepId,
+      );
+      if (exists) {
+        MessageBox.error("Bước này đã tồn tại trong danh sách.");
+        return;
+      }
 
-    console.log("Saved step payload:", payload);
+      const newStep: ProjectStepItem = {
+        BranchId: this.branchId,
+        StepId: formData.StepId,
+        Status: formData.Status || "0",
+        PlanStart: formData.PlanStart || "",
+        StartStatus: formData.StartStatus || "0",
+        Deadline: formData.Deadline || "",
+        StepName: formData.StepName || "",
+      };
 
-    projectModel?.setProperty("/StepList", updatedList);
+      updatedList = [...currentList, newStep];
+    } else {
+      const selectedIndices = this.stepTable.getSelectedIndices();
+      if (!selectedIndices.length) {
+        MessageBox.warning("Vui lòng chọn bước cần lưu.");
+        return;
+      }
 
-    dialog.close();
+      const selectedItem = <ProjectStepItem>(
+        this.stepTable.getContextByIndex(selectedIndices[0])?.getObject()
+      );
+
+      if (!selectedItem) {
+        MessageBox.error("Không thể xác định bước đang chọn.");
+        return;
+      }
+
+      updatedList = currentList.map((step) =>
+        step.StepId === selectedItem.StepId ? { ...step, ...formData } : step,
+      );
+    }
+
+    const payload = this.sanitizeStepPayload(updatedList, false);
+
+    console.log(payload);
+
+    oDataModel.create("/ProjectHeaderSet", payload, {
+      success: () => {
+        this.loadProjectSteps(this.branchId);
+        dialog.close();
+        this.stepTable.clearSelection();
+        MessageBox.success(
+          this.isCreatingStep
+            ? "Tạo bước thành công!"
+            : "Cập nhật bước thành công!",
+        );
+      },
+      error: (error: ODataError) => {
+        const oResponse = JSON.parse(error.responseText || "") as ErrorCustom;
+        const message = oResponse.error.message.value || "Request Failed";
+
+        MessageBox.error(message);
+
+        this.getView()?.setBusy(false);
+      },
+    });
+  }
+  public async openCreateStepDialog() {
+    this.isCreatingStep = true;
+    try {
+      if (!this.detailProjectStepDialog) {
+        this.detailProjectStepDialog =
+          await this.loadView<Dialog>("ProjectStepDetail");
+      }
+
+      const form = {
+        BranchId: this.branchId,
+        StepId: "1",
+        Status: "1",
+        PlanStart: "",
+        StartStatus: "1",
+        Deadline: "",
+      };
+
+      this.detailProjectStepDialog.setModel(
+        new JSONModel(form),
+        "projectStepDetail",
+      );
+      this.detailProjectStepDialog.open();
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  public async onOpenStepDialog() {
+  public async onEditStepDialog() {
+    this.isCreatingStep = false;
     try {
       if (!this.detailProjectStepDialog) {
         this.detailProjectStepDialog =
@@ -891,20 +1211,142 @@ export default class Project extends Base {
 
       const form = {
         ...SelectedItem,
+        comments: [],
+        stepDocuments: [],
       };
 
-      this.detailProjectStepDialog.setModel(
-        new JSONModel(form),
-        "projectStepDetail",
-      );
+      const model = new JSONModel(form);
+      this.detailProjectStepDialog.setModel(model, "projectStepDetail");
+
+      if (SelectedItem.BranchId && SelectedItem.StepId) {
+        this.loadStepComments(SelectedItem.BranchId, SelectedItem.StepId);
+        this.loadStepDocuments(
+          SelectedItem.BranchId,
+          SelectedItem.StepId,
+          model,
+        );
+      }
+
       this.detailProjectStepDialog.open();
     } catch (error) {
       console.log(error);
     }
   }
 
+  private loadStepComments(branchId: string, stepId: string) {
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+
+    oDataModel.read("/CommentSet", {
+      filters: [
+        new Filter("BranchId", FilterOperator.EQ, branchId),
+        new Filter("StepId", FilterOperator.EQ, stepId),
+      ],
+      success: (response: ODataResponses<CommentItem[]>) => {
+        const mapped: StepCommentItem[] = response.results.map(
+          (c: CommentItem) => ({
+            Author: c.CreateBy || "",
+            Date: c.CreateDate || "",
+            Text: c.Content || "",
+          }),
+        );
+
+        const model = <JSONModel>(
+          this.detailProjectStepDialog.getModel("projectStepDetail")
+        );
+        model?.setProperty("/comments", mapped);
+      },
+      error: (error: ODataError) => {
+        const oResponse = JSON.parse(error.responseText || "") as ErrorCustom;
+        const message = oResponse.error.message.value || "Request Failed";
+
+        MessageBox.error(message);
+
+        this.getView()?.setBusy(false);
+      },
+    });
+  }
+
+  private loadStepDocuments(
+    branchId: string,
+    stepId: string,
+    model: JSONModel,
+  ) {
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+
+    oDataModel.read("/ProjectFileListSet", {
+      filters: [
+        new Filter("BranchId", FilterOperator.EQ, branchId),
+        new Filter("StepId", FilterOperator.EQ, stepId),
+      ],
+      success: (response: ODataResponses<any[]>) => {
+        const docs = Array.isArray(response) ? response : response.results;
+        const mapped = docs.map((d: any) => ({
+          FileName: d.Filename || "",
+          Url: `/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV/ProjectFileSet(BranchId='${branchId}',StepId='${stepId}',FileId='${d.FileId}')/$value`,
+          Mimetype: d.MimeType || "",
+          CreateBy: d.CreateBy || "",
+          CreateDate: d.CreateDate || "",
+          CreateTime: d.CreateTime || "",
+        }));
+
+        model.setProperty("/stepDocuments", mapped);
+      },
+      error: (error: ODataError) => {
+        const oResponse = JSON.parse(error.responseText || "") as ErrorCustom;
+        const message = oResponse.error.message.value || "Request Failed";
+
+        MessageBox.error(message);
+
+        this.getView()?.setBusy(false);
+      },
+    });
+  }
+
+  public onPost(event: FeedInput$PostEvent) {
+    const text = event.getParameter("value");
+    if (!text) {
+      return;
+    }
+
+    const model = this.detailProjectStepDialog.getModel(
+      "projectStepDetail",
+    ) as JSONModel;
+    const data = model.getData() as ProjectStepItem & { BranchId?: string };
+
+    if (!data.BranchId || !data.StepId) {
+      MessageBox.error("Thiếu thông tin BranchId hoặc StepId.");
+      return;
+    }
+
+    const oDataModel = this.getModel<ODataModel>();
+    oDataModel.setUseBatch(false);
+
+    const payload = {
+      StepId: data.StepId,
+      Content: text,
+      BranchId: data.BranchId,
+    };
+
+    oDataModel.create("/CommentSet", payload, {
+      success: () => {
+        this.loadStepComments(data.BranchId, data.StepId);
+      },
+      error: (error: ODataError) => {
+        const oResponse = JSON.parse(error.responseText || "") as ErrorCustom;
+        const message = oResponse.error.message.value || "Request Failed";
+
+        MessageBox.error(message);
+
+        this.getView()?.setBusy(false);
+      },
+    });
+  }
+
   public onCloseStepDialog() {
     this.detailProjectStepDialog?.close();
+    this.detailProjectStepDialog.setModel(null, "projectStepDetail");
   }
 
   public loadProjectSteps(branchId: string, modelName = "project"): void {
@@ -914,15 +1356,23 @@ export default class Project extends Base {
     oDataModel.read("/ProjectStepSet", {
       filters: [new Filter("BranchId", "EQ", branchId)],
       success: (response: ODataResponses<ProjectStepItem[]>) => {
-        const steps = Array.isArray(response) ? response : response.results;
-        console.log(steps);
-        this.getModel(modelName)?.setProperty("/StepList", steps || []);
+        this.getModel(modelName)?.setProperty(
+          "/StepList",
+          response.results || [],
+        );
       },
       error: (error: ODataError) => {
-        MessageBox.error(error.message || "Failed to load project steps");
+        const oResponse = JSON.parse(error.responseText || "") as ErrorCustom;
+        const message = oResponse.error.message.value || "Request Failed";
+
+        MessageBox.error(message);
+
+        this.getView()?.setBusy(false);
       },
     });
   }
+
+  //#endregion StepsAction
 
   //#region  validation
   // 1. Validation định dạng mã book: VNxxxxxxx
@@ -973,10 +1423,96 @@ export default class Project extends Base {
   //#endregion validation
 
   //#region Header formatter
+
+  public formatDate(sDate: string): string {
+    if (!sDate || sDate.length !== 8) {
+      return "";
+    }
+
+    return `${sDate.substring(0, 4)}-${sDate.substring(4, 6)}-${sDate.substring(6, 8)}`;
+  }
+
+  private matchProjectResponseToDisplay(response: ProjectFormData) {
+    const updates: Record<string, string> = {};
+
+    const allowedRegion = ["", "1", "2", "KHAC"];
+    if (response.Region && !allowedRegion.includes(response.Region)) {
+      updates.Region = "KHAC";
+      updates.regionKhac = response.Region;
+    } else {
+      updates.regionKhac = "";
+    }
+
+    const allowedArea = [
+      "",
+      "1",
+      "1B",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "6B",
+      "7",
+      "8",
+      "8B",
+      "9",
+      "10",
+      "11",
+      "KHAC",
+    ];
+    if (response.Area && !allowedArea.includes(response.Area)) {
+      updates.Area = "KHAC";
+      updates.areaKhac = response.Area;
+    } else {
+      updates.areaKhac = "";
+    }
+
+    const allowedPlanType = ["", "1", "2", "KHAC"];
+    if (response.PlanType && !allowedPlanType.includes(response.PlanType)) {
+      updates.PlanType = "KHAC";
+      updates.planTypeKhac = response.PlanType;
+    } else {
+      updates.planTypeKhac = "";
+    }
+
+    const allowedProjType = [
+      "",
+      "DI_DOI",
+      "MO_MOI",
+      "THUE_THEM",
+      "CAI_TAO",
+      "KHAC",
+    ];
+    if (response.ProjType && !allowedProjType.includes(response.ProjType)) {
+      updates.ProjType = "KHAC";
+      updates.loaiCongTrinhKhac = response.ProjType;
+    } else {
+      updates.loaiCongTrinhKhac = "";
+    }
+
+    const allowedUnitType = ["", "CN", "PGD", "HO", "KHAC"];
+    if (response.UnitType && !allowedUnitType.includes(response.UnitType)) {
+      updates.UnitType = "KHAC";
+      updates.loaiHinhDonViKhac = response.UnitType;
+    } else {
+      updates.loaiHinhDonViKhac = "";
+    }
+
+    const allowedBankName = ["", "VPBANK", "GPBANK", "KHAC"];
+    if (response.BankName && !allowedBankName.includes(response.BankName)) {
+      updates.BankName = "KHAC";
+      updates.tenNganHangKhac = response.BankName;
+    } else {
+      updates.tenNganHangKhac = "";
+    }
+
+    return updates;
+  }
+
   public formatStepName(stepId: string): string {
     const stepPool = this.getModel("stepPool")?.getData() as
-      | { availableSteps?: { StepId: string; StepName: string }[] }
-      | undefined;
+      { availableSteps?: { StepId: string; StepName: string }[] } | undefined;
     const step = stepPool?.availableSteps?.find((s) => s.StepId === stepId);
     return step?.StepName || stepId;
   }
@@ -995,6 +1531,26 @@ export default class Project extends Base {
       "2": "Đã Duyệt",
     };
     return map[statusKey] ?? statusKey;
+  }
+
+  public formatStepStartStatus(statusKey: string): {
+    text: string;
+    state: string;
+  } {
+    const map: Record<string, { text: string; state: string }> = {
+      "1": { text: "Triển khai sớm hơn kế hoạch", state: "Success" },
+      "2": { text: "Triển khai đúng kế hoạch", state: "Information" },
+      "3": { text: "Triển khai trễ kế hoạch", state: "Warning" },
+    };
+    return map[statusKey] ?? { text: statusKey, state: "None" };
+  }
+
+  public formatStepStartStatusText(statusKey: string): string {
+    return this.formatStepStartStatus(statusKey).text;
+  }
+
+  public formatStepStartStatusState(statusKey: string): string {
+    return this.formatStepStartStatus(statusKey).state;
   }
 
   public formatStepStatus(statusKey: string): { text: string; state: string } {
@@ -1021,94 +1577,99 @@ export default class Project extends Base {
     };
     return map[statusKey] ?? statusKey;
   }
+
+  public formatSectionVisible(step: string, section: string): boolean {
+    if (step === "0" && section === "ScanTool") {
+      return true;
+    }
+    return false;
+  }
   //#endregion Header formatter
 
   //#region FileHadler
 
-  public async onAfterItemAdded(event: UploadSet$AfterItemAddedEvent) {
-    const item = event.getParameter("item");
-    if (item) {
-      item.setVisibleEdit(false);
-      await this.uploadFile(item);
-    }
-  }
+  public async UploadScanFile(event: FileUploader$ChangeEvent) {
+    const files = event.getParameter("files");
+    const uploader = event.getSource();
 
-  public async uploadFile(item: UploadSetItem) {
-    const File = item.getFileObject() as Blob;
-    if (!File) {
+    if (!files || files.length === 0) {
       return;
     }
+
+    const file = files[0] as File;
+    uploader.setBusy(true);
+
     try {
-      if (!this.csrfToken) {
-        await this.fetchCsrfToken();
-      }
-      const fileName = item.getFileName();
-      const contentType = this.getMineType(fileName);
-      // check url for workitemid
-      // const url = window.location.href;
-      // const workItemId = url.split("WorkitemId=")[1] || "";
-      const slug = `${this.branchId}|${this.step}|${fileName}`;
+      await this.uploadFileScanner("/ProjUploadSet", file).then(
+        (response: ODataResponse<ProjectFormData>) => {
+          const projectModel = this.getModel("projectInitForm");
+          response.PlanStart = this.formatDate(response.PlanStart);
 
-      const arrayBuffer: ArrayBuffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(File);
-      });
+          if (projectModel) {
+            const updates = this.matchProjectResponseToDisplay(response);
+            const {
+              objectKey,
+              Mimetype,
+              CreatedDate,
+              CreatedBy,
+              Status,
+              AirConditioningContractor,
+              ConstructionContractor,
+              ElecNetCamContractor,
+              InteriorContractor,
+              ...responseClean
+            } = response as any;
 
-      const blob = new Blob([arrayBuffer], { type: contentType });
-      let response = await fetch(`${this.servicePath}/ProjectFileSet`, {
-        method: "POST",
-        headers: {
-          "Content-type": contentType,
-          "x-csrf-token": this.csrfToken as string,
-          slug: encodeURIComponent(slug),
-          "X-Requested-With": "XMLHttpRequest",
+            projectModel.setProperty("/", {
+              ...responseClean,
+              ...updates,
+            });
+
+            console.log("Project model updated:", projectModel.getData());
+          }
         },
-        body: blob,
-        credentials: "include",
-      });
-      if (response.status === 403) {
-        // Expired token
-        await this.fetchCsrfToken();
-        response = await fetch(`${this.servicePath}/ProjectFileSet`, {
-          method: "POST",
-          headers: {
-            "Content-type": contentType,
-            "x-csrf-token": this.csrfToken as string,
-            slug: encodeURIComponent(slug),
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          body: blob,
-          credentials: "include",
-        });
-      }
-      if (!response.ok) {
-        const text = await response.text();
-        MessageBox.error(text);
-      }
-      const FileId = response.headers.get("obeject-key");
-      MessageBox.success("file success");
-      this.getListFileProjInit();
+      );
+      MessageBox.success("Doc file thành công");
     } catch (error) {
-      MessageBox.error(error as string);
+      MessageBox.error("Doc file thất bại");
+    } finally {
+      uploader.setBusy(false);
+      uploader.clear();
     }
   }
 
-  private async fetchCsrfToken() {
-    const response = await fetch(this.servicePath + "/", {
-      method: "GET",
-      headers: {
-        "x-csrf-token": "Fetch",
-      },
-      credentials: "include",
-    });
-    if (!response.ok) {
-      throw new Error("No token");
+  public onBeforeItemAdded(event: UploadSet$BeforeItemAddedEvent) {
+    event.preventDefault();
+    const uploadUrl = "/ProjectFileSet";
+    const uploadSet = event.getSource();
+    const item = <UploadSetItem>event.getParameter("item");
+    const file = <File>item?.getFileObject();
+
+    if (!this.branchId) {
+      this.branchId = this.getModel("projectInitForm")?.getProperty(
+        "/BranchId",
+      ) as string;
     }
-    this.csrfToken = response.headers.get("x-csrf-token");
-    if (!this.csrfToken) {
-      throw new Error("CSRF token dont exist in response");
+
+    if (!this.step) {
+      this.step = 0;
+    }
+    if (file) {
+      uploadSet.setBusy(true);
+      console.log(this.branchId, this.step);
+      this.uploadFile(uploadUrl, file, this.branchId, this.step.toString())
+        .then((response: ODataResponse<unknown>) => {
+          this.getListFileProjInit();
+        })
+        .catch((error: any) => {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(error.responseText, "text/xml");
+          const mgserr = xmlDoc.querySelector("message")?.textContent as string;
+          MessageBox.error(mgserr);
+        })
+        .finally(() => {
+          uploadSet.setBusy(false);
+        });
     }
   }
 
@@ -1119,38 +1680,36 @@ export default class Project extends Base {
 
     const filters = [
       new Filter("BranchId", FilterOperator.EQ, this.branchId),
-      new Filter("StepId", FilterOperator.EQ, this.step),
+      new Filter("StepId", FilterOperator.EQ, this.step.toString()),
     ];
 
-    oDataModel.read("/ProjectFileSet", {
+    oDataModel.read("/ProjectFileListSet", {
       filters: filters,
-      success: (odata: ODataResponse<any>) => {
-        model.setProperty("DocumentList", odata.results);
+      success: (odata: ODataResponses<ProjectDocumentItem[]>) => {
+        const attachments = odata.results.map((item: ProjectDocumentItem) => {
+          let Url = `/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV/ProjectFileSet(BranchId='${this.branchId}',StepId='${this.step}',FileId='${item.FileId}')/$value`;
+          return { ...item, Url };
+        });
+        model.setProperty("/DocumentList", attachments);
       },
       error: () => {},
     });
   }
 
-  public onDownLoadFile(event: JQuery.ClickEvent) {
-    const clickeItem = $(event.target);
-    const itemId = clickeItem.attr("id");
-    if (itemId?.includes("Button")) {
-      return;
-    }
-    let currentItemId = <string>$(event.currentTarget).attr("id");
-    if (currentItemId.endsWith("-listItem")) {
-      currentItemId = currentItemId.slice(0, -"-listItem".length);
-    }
-    const clickedItem = UI5Element.getElementById(
-      currentItemId,
-    ) as UploadSetItem;
-    if (clickedItem) {
-      const fileKey = <string>clickedItem.data("FileId");
-      if (fileKey) {
-        const Path = `${this.servicePath}/ProjectFileSet(BranchId='${this.branchId}', StepId='${this.step}',FileId='${fileKey}')/$value`;
-        downloadFile(Path);
-      }
-    }
+  public onOpenPressed(event: UploadSetItem$OpenPressedEvent) {
+    event?.preventDefault();
+
+    const item = event.getSource();
+
+    const context = item?.getBindingContext("PrjDocumentInit");
+    const parent = item?.getParent() as UploadSet;
+    const fileName = context?.getProperty("Filename") as string;
+    const fileKey = item.data("FileId") as string;
+
+    const Path = `/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV/ProjectFileSet(BranchId='${this.branchId}',StepId='${this.step.toString()}',FileId='${fileKey}')/$value`;
+    console.log(Path);
+
+    this.downloadFile(Path, fileName, parent);
   }
 
   public onItemDeleteFileZ9(event: UploadSet$BeforeItemRemovedEvent) {
@@ -1158,10 +1717,10 @@ export default class Project extends Base {
     const item = event.getParameter("item") as UploadSetItem;
     const FileName = item.getFileName();
 
-    const uploadSet = this.getControlById<UploadSet>("fileZ9");
+    const uploadSet = this.getControlById<UploadSet>("UploadSetProj");
     const FileId = item.data("FileId") as string;
 
-    const Path = `/ProjectFileSet(BranchId='${this.branchId}',FileId='${FileId}', StepId='${this.step}')`;
+    const Path = `/sap/opu/odata/sap/ZODATA_CONG_TRINH_VPB_SRV/ProjectFileSet(BranchId='${this.branchId}',FileId='${FileId}',StepId='${this.step}')`;
 
     const oDataModel = this.getModel<ODataModel>();
     oDataModel.setUseBatch(false);
